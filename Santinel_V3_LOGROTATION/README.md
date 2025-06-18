@@ -4,6 +4,12 @@
 This service monitors processes by checking their status in a MySQL database and automatically restarts them when they enter an alarm state. Designed specifically for RedHat Linux environments, it provides robust process monitoring and management capabilities with circuit breaker pattern implementation to prevent cascading failures.
 
 ```bash
+sudo cp monitor_service.8 /usr/share/man/man8/
+sudo mandb
+man monitor_service
+```
+
+```bash
 # Verifică drepturile de execuție
 chmod +x monitor_service.sh
 
