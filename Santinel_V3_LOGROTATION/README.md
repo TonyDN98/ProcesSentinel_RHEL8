@@ -3,6 +3,59 @@
 ## Overview
 This service monitors processes by checking their status in a MySQL database and automatically restarts them when they enter an alarm state. Designed specifically for RedHat Linux environments, it provides robust process monitoring and management capabilities with circuit breaker pattern implementation to prevent cascading failures.
 
+## Instalare
+
+### 1. Pregătirea sistemului
+
+```bash
+# Actualizarea sistemului
+sudo dnf update -y
+
+# Instalarea dependențelor necesare
+sudo dnf install -y mysql-server mysql-client
+```
+
+### 2. Configurarea directorului de serviciu
+
+```bash
+# Crearea directorului pentru serviciu
+sudo mkdir -p /opt/monitor_service
+
+# Copierea fișierelor necesare
+sudo cp monitor_service.sh /opt/monitor_service/
+sudo cp config.ini /opt/monitor_service/
+
+# Setarea permisiunilor
+sudo chmod 755 /opt/monitor_service
+sudo chmod 700 /opt/monitor_service/monitor_service.sh
+sudo chmod 600 /opt/monitor_service/config.ini
+```
+
+### 3. Configurarea MySQL
+
+```bash
+# Pornirea serviciului MySQL
+sudo systemctl enable mysqld
+sudo systemctl start mysqld
+
+# Rularea scriptului de configurare
+sudo mysql < setup.sql
+```
+
+### 4. Configurarea serviciului systemd
+
+```bash
+# Copierea fișierului de serviciu
+sudo cp monitor_service.service /etc/systemd/system/
+
+# Reîncărcarea daemon-ului systemd
+sudo systemctl daemon-reload
+
+# Activarea și pornirea serviciului
+sudo systemctl enable monitor_service
+sudo systemctl start monitor_service
+```
+
 ```bash
 sudo cp monitor_service.8 /usr/share/man/man8/
 sudo mandb
@@ -20,6 +73,15 @@ bash -x ./monitor_service.sh
 ```bash
 chmod 644 config.ini
 ```
+
+Probleme cu permisiunile:
+   ```bash
+   sudo chown -R root:root /opt/monitor_service
+   sudo chmod 700 /opt/monitor_service/monitor_service.sh
+   sudo chmod 600 /opt/monitor_service/config.ini
+   ```
+
+
 ## Core Functionality
 1. **Database Monitoring**
    - Continuously monitors MySQL database for processes in alarm state
@@ -221,7 +283,3 @@ CREATE TABLE PROCESE (
    - Check process executable permissions
    - Verify service user permissions
    - Review systemd service configuration
-
-## Support
-
-For issues and feature requests, please check the improvement suggestions or create an issue in the repository.
