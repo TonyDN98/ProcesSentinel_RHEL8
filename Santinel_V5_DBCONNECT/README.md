@@ -2,6 +2,8 @@
 
 ## Overview
 This service monitors processes by checking their status in a MySQL database and automatically restarts them when they enter an alarm state. Designed specifically for RedHat Linux environments, it provides robust process monitoring and management capabilities with circuit breaker pattern implementation to prevent cascading failures.
+> Database queries in `monitor_service.sh` were optimized by adding connection handling options to ensure quick closure after each query. Changes included `--connect-timeout=5`, `--quick`, `--compress`, and `--reconnect=FALSE` for both query functions. This prevents connection congestion from frequent queries.
+
 
 ## Instalare
 
