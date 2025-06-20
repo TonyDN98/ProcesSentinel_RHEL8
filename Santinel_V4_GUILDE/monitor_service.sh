@@ -239,8 +239,8 @@ perform_health_check() {
             break
         fi
 
-        local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-        printf "\r%s - DEBUG - Health check attempt failed for %s, retrying in 1 second... (attempt %d)" "$timestamp" "$process_name" "$attempt"
+        # Use a format that won't be captured by system logs and shows actual seconds
+        printf "\rHealth check attempt failed for %s, retrying in 1 second... (attempt %d)" "$process_name" "$attempt"
         sleep 1
         current_time=$(date +%s)
         attempt=$((attempt + 1))
@@ -396,9 +396,8 @@ check_circuit_breaker() {
         local time_diff=$((current_time - ${last_failure_times[$process_name]}))
         local time_remaining=$((CIRCUIT_RESET_TIME - time_diff))
 
-        # Print initial circuit breaker status
-        timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-        printf "%s - DEBUG - Circuit breaker status for %s: Time remaining until reset: %s seconds\r" "$timestamp" "$process_name" "$time_remaining"
+        # Print initial circuit breaker status without logging to system logs
+        printf "Circuit breaker status for %s: Time remaining until reset: %s seconds\r" "$process_name" "$time_remaining"
 
         if [ $time_diff -ge "$CIRCUIT_RESET_TIME" ]; then
             echo "" # New line before the next message
@@ -469,12 +468,12 @@ main() {
 
         # Calculate and show countdown until next check
         time_until_next_check=$CHECK_INTERVAL
-        timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-        printf "%s - DEBUG - Next database check in %s seconds\r" "$timestamp" "$time_until_next_check"
+        # Use a format that won't be captured by system logs
+        printf "Next database check in %s seconds\r" "$time_until_next_check"
         while [ $time_until_next_check -gt 0 ]; do
             sleep 1
             time_until_next_check=$((time_until_next_check - 1))
-            printf "\033[2K\r%s - DEBUG - Next database check in %s seconds\r" "$timestamp" "$time_until_next_check"
+            printf "\033[2K\rNext database check in %s seconds\r" "$time_until_next_check"
         done
         echo "" # New line after countdown finishes
     done
