@@ -57,7 +57,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable monitor_service
 sudo systemctl start monitor_service
 ```
-
+#### Man page for service
 ```bash
 sudo cp monitor_service.8 /usr/share/man/man8/
 sudo mandb
@@ -155,11 +155,6 @@ max_attempts = 2
 
 ```
 
-## Dependencies
-- MySQL Client (`mysql-client` package)
-- Bash 4.0 or higher (for associative arrays)
-- systemd (for service management)
-- Standard Linux utilities (`awk`, `date`, `pkill`)
 
 ## Configuration
 The service uses `config.ini` with the following sections:
@@ -276,53 +271,29 @@ CREATE TABLE PROCESE (
 ## Improvement Suggestions
 
 1. **Enhanced Security**
-   - Implement encrypted storage for database credentials
-   - Add support for MySQL SSL connections
    - Run service with minimal required permissions
 
 2. **Monitoring Enhancements**
-   - Add email/SMS notifications for critical failures
-   - Implement process resource monitoring (CPU, Memory)
    - Add process uptime tracking
    - Include process dependency management
 
-3. **System Integration**
-   - Add support for containerized processes
-   - Implement API endpoints for status monitoring
-   - Add support for clustering and high availability
-
-4. **Configuration Management**
-   - Add dynamic configuration reloading
-   - Support for YAML/JSON configuration formats
-   - Environment variable override support
-
 5. **Logging and Metrics**
-   - Add structured logging (JSON format)
    - Implement metrics collection for Prometheus
    - Add log rotation and archiving
    - Create dashboard templates for monitoring
 
 6. **Process Management**
-   - Add custom restart strategies per process
+   - Add custom restart strategies per process 
    - Implement graceful shutdown procedures
    - Support for process priority levels
    - Extend health check capabilities with HTTP/API endpoint checks
 
-7. **Circuit Breaker Enhancements**
-   - Add half-open state for circuit breaker
-   - Implement different circuit breaker strategies
-   - Add circuit breaker metrics and monitoring
-
 8. **Database Optimizations**
    - Add connection pooling
    - Implement retry mechanisms for database operations
-   - Add support for multiple database backends
 
 9. **Testing and Validation**
    - Add unit tests for core functions
-   - Create integration test suite
-   - Add automated deployment tests
-   - Implement chaos testing scenarios
 
 ## Troubleshooting
 
