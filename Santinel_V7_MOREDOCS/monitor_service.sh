@@ -267,7 +267,13 @@ execute_pre_restart() {
     return 0
 }
 
-# Perform health check after restart
+###############################################################################
+# Function: perform_health_check
+# Purpose:  Run a health check command for a process, retrying until timeout.
+#           Perform health check after restart
+# Returns:  0 if health check passes, 1 if it fails after timeout.
+###############################################################################
+
 perform_health_check() {
     local process_name="$1"
     local health_command=$(get_process_config "$process_name" "health_check_command" "")
@@ -297,6 +303,7 @@ perform_health_check() {
             break
         fi
 
+        # Print progress for user, but not to logs
         # Use a format that won't be captured by system logs and shows actual seconds
         printf "\rHealth check attempt failed for %s, retrying in 1 second... (attempt %d)" "$process_name" "$attempt"
         sleep 1
@@ -314,14 +321,25 @@ perform_health_check() {
     fi
 }
 
-# Get restart strategy for a process
+###############################################################################
+# Function: get_restart_strategy
+# Purpose:  Get the restart strategy for a process (service, process, custom, auto).
+###############################################################################
+
 get_restart_strategy() {
     local process_name="$1"
     local strategy=$(get_process_config "$process_name" "restart_strategy" "auto")
     echo "$strategy"
 }
 
-# Restart a process or service
+###############################################################################
+# Function: restart_process
+# Purpose:  Attempt to restart a process using its configured strategy.
+#           Handles service, process, custom, and auto strategies.
+#           Retries up to max_attempts with delay.
+# Returns:  0 on success, 1 on failure.
+###############################################################################
+
 restart_process() {
     local process_name="$1"
     local strategy=$(get_restart_strategy "$process_name")
@@ -355,7 +373,7 @@ restart_process() {
                 ;;
 
             "process")
-                # Direct process management
+                # Direct process management : kill and restart
                 if pkill "$process_name"; then
                     log "INFO" "RESTART LOG: Successfully killed process: $process_name"
                     sleep "$restart_delay"
@@ -468,10 +486,22 @@ EOF
     fi
 }
 
-# Circuit breaker implementation
+###############################################################################
+# Circuit Breaker Pattern
+# Purpose:  Prevents repeated restart attempts for failing processes.
+#           Opens circuit after N failures, resets after a cooldown.
+###############################################################################
+
 declare -A circuit_breaker
 declare -A failure_counts
 declare -A last_failure_times
+
+###############################################################################
+# Function: check_circuit_breaker
+# Purpose:  Check if the circuit breaker is open for a process.
+#           If open, skip restart until reset time has elapsed.
+# Returns:  0 if closed, 1 if open.
+###############################################################################
 
 check_circuit_breaker() {
     local process_name="$1"
@@ -508,6 +538,11 @@ check_circuit_breaker() {
     return 0
 }
 
+###############################################################################
+# Function: update_circuit_breaker
+# Purpose:  Update the circuit breaker state after a restart attempt.
+#           Opens the circuit if failures exceed threshold.
+###############################################################################
 update_circuit_breaker() {
     local process_name="$1"
     local success="$2"
@@ -526,6 +561,11 @@ update_circuit_breaker() {
     fi
 }
 
+###############################################################################
+# Function: main
+# Purpose:  Main monitoring loop. Checks for alarmed processes, attempts restarts,
+#           updates database and circuit breaker state, and waits for next interval.
+###############################################################################
 # Main monitoring loop
 main() {
     log "INFO" "Starting Process Monitor Service"
