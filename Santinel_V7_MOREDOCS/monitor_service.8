@@ -1,106 +1,165 @@
-.TH MONITOR_SERVICE 8 "June 2025" "Version 1.0" "System Administration Commands"
+.TH MONITOR_SERVICE 8 "2025-06-22" "Process Monitor Service" "System Administration Utilities"
 .SH NAME
-monitor_service \- Process monitoring and auto-recovery service
+monitor_service \- Automated process monitoring and restart service for Linux
 .SH SYNOPSIS
 .B monitor_service
-[\fB\-h\fR]
-[\fB\-c\fR \fIconfig-file\fR]
+.RI [ -c " config_file" ]
 .SH DESCRIPTION
 .B monitor_service
-is a daemon that monitors system processes by checking their status in a MySQL database
-and automatically restarts them when they enter an alarm state. It is designed for
-RedHat Linux environments and provides robust process monitoring with circuit breaker
-patterns and configurable health checks.
+is a system daemon that monitors the status of critical processes as defined in a MySQL database and automatically restarts them if they enter an alarm state. It supports multiple restart strategies, health checks, log rotation, and a circuit breaker pattern to prevent restart storms.
+
 .SH OPTIONS
 .TP
-.BR \-h
-Display help and usage information
-.TP
-.BR \-c " \fIconfig-file\fR"
-Specify an alternative configuration file (default: /opt/monitor_service/config.ini)
+.BR -c " config_file"
+Specify an alternative configuration file (default: /opt/monitor_service/config.ini).
+
 .SH CONFIGURATION
-The service uses an INI-style configuration file with the following main sections:
+The service uses an INI-style configuration file with the following sections:
+
 .TP
 .B [database]
-Database connection settings (host, user, password, database name)
+Database connection settings:
+.RS
+.nf
+host = localhost
+user = root
+password = Parola22@@
+database = v_process_monitor
+.fi
+.RE
+
 .TP
 .B [monitor]
-Monitor settings (check interval, circuit breaker parameters)
+Monitoring and circuit breaker settings:
+.RS
+.nf
+check_interval = 300            ; Check interval in seconds
+max_restart_failures = 3        ; Max restart failures before circuit breaker opens
+circuit_reset_time = 1800       ; Circuit breaker reset time in seconds
+.fi
+.RE
+
 .TP
 .B [logging]
-Log rotation and management settings
-.TP
-.B [process.*]
-Process-specific configurations including restart strategies and health checks
-.SH FILES
-.TP
-.I /opt/monitor_service/config.ini
-Main configuration file
-.TP
-.I /var/log/monitor_service.log
-Main log file
-.TP
-.I /etc/systemd/system/monitor_service.service
-Systemd service unit file
-.SH SIGNALS
-.TP
-.B SIGHUP
-Reload configuration
-.TP
-.B SIGTERM
-Graceful shutdown
-.SH DATABASE SCHEMA
-The service expects the following tables in the database:
-.TP
-.B PROCESE
-Contains process definitions (process_id, process_name)
-.TP
-.B STATUS_PROCESS
-Contains process status information (process_id, alarma, sound, notes)
-.SH RESTART STRATEGIES
-The service supports three restart strategies:
-.TP
-.B service
-Uses systemctl for system services
-.TP
-.B process
-Direct process management using signals
-.TP
-.B auto
-Automatically determines the best restart strategy
-.SH CIRCUIT BREAKER
-The service implements a circuit breaker pattern to prevent repeated restart attempts:
-.IP \[bu] 2
-Opens after configured number of failures
-.IP \[bu]
-Remains open for configured reset time
-.IP \[bu]
-Automatically resets after timeout
-.SH LOGGING
-Implements log rotation with configurable:
-.IP \[bu] 2
-Maximum log file size
-.IP \[bu]
-Number of log files to keep
-.IP \[bu]
-Automatic rotation when size limit is reached
-.SH EXAMPLES
-Process-specific configuration example:
-.PP
-.nf
+Log rotation settings:
 .RS
+.nf
+max_log_size = 5120             ; Max log file size in KB before rotation
+log_files_to_keep = 5           ; Number of rotated log files to keep
+.fi
+.RE
+
+.TP
+.B [process.<name>]
+Process-specific monitoring and restart settings. Example:
+.RS
+.nf
 [process.apache2]
 restart_strategy = service
 pre_restart_command = /usr/sbin/apachectl configtest
 health_check_command = systemctl is-active apache2
 health_check_timeout = 10
-.RE
+restart_delay = 5
+max_attempts = 2
 .fi
-.SH BUGS
-Report bugs to your system administrator or open an issue in the project repository.
+.RE
+
+.TP
+.B [process.default]
+Default settings for processes not explicitly listed.
+
+.SH RESTART STRATEGIES
+.TP
+.B service
+Restart using \fBsystemctl restart <process>\fR.
+.TP
+.B process
+Directly kill and restart the process using \fBpkill\fR and process invocation.
+.TP
+.B custom
+Run a custom restart command, e.g. \fBrestart_command = /usr/local/bin/custom_restart.sh %s\fR.
+.TP
+.B auto
+Try \fBservice\fR first, then fallback to \fBprocess\fR.
+
+.SH HEALTH CHECKS
+After each restart, a health check command is run (e.g. \fBsystemctl is-active <process>\fR or \fBpgrep <process>\fR).
+The service waits up to \fBhealth_check_timeout\fR seconds for the check to pass.
+
+.SH CIRCUIT BREAKER
+If a process fails to restart \fBmax_restart_failures\fR times in a row, the circuit breaker "opens" for that process and no further restart attempts are made until \fBcircuit_reset_time\fR seconds have passed.
+
+.SH LOGGING
+Logs are written to \fB/var/log/monitor_service.log\fR. Log rotation is performed when the file exceeds \fBmax_log_size\fR KB, keeping up to \fBlog_files_to_keep\fR rotated logs.
+
+.SH FILES
+.TP
+.B /opt/monitor_service/config.ini
+Main configuration file.
+.TP
+.B /var/log/monitor_service.log
+Main log file.
+.TP
+.B /etc/systemd/system/monitor_service.service
+Systemd service unit file.
+
+.SH SIGNALS
+.TP
+.B SIGTERM
+Graceful shutdown.
+.TP
+.B SIGHUP
+Reload configuration.
+
+.SH DATABASE SCHEMA
+The service expects the following tables:
+.RS
+.nf
+CREATE TABLE STATUS_PROCESS (
+    process_id INT PRIMARY KEY,
+    alarm TINYINT,
+    sound TINYINT,
+    notes TEXT
+);
+
+CREATE TABLE PROCESS (
+    process_id INT PRIMARY KEY,
+    process_name VARCHAR(255)
+);
+.fi
+.RE
+
+.SH EXAMPLES
+.TP
+Start the service:
+.RS
+.nf
+sudo systemctl start monitor_service
+.fi
+.RE
+
+.TP
+Check service status:
+.RS
+.nf
+sudo systemctl status monitor_service
+.fi
+.RE
+
+.TP
+View logs:
+.RS
+.nf
+sudo tail -f /var/log/monitor_service.log
+.fi
+.RE
+
 .SH AUTHOR
-Your Organization Name
+Written by TonyDN98 and contributors.
+
 .SH SEE ALSO
 .BR systemctl (1),
-.BR systemd.service (5),
-.BR mysql (1)
+.BR mysql (1),
+.BR pkill (1),
+.BR journalctl (1)
+
