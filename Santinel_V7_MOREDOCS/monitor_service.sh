@@ -582,6 +582,7 @@ main() {
         # Get processes in alarm state
         while IFS='|' read -r process_id process_name alarma sound notes; do
             if [ -n "$process_id" ]; then
+                echo " " # Print a space to avoid overwriting the previous line
                 log "INFO" "Found process in alarm: $process_name (ID: $process_id)"
 
                 # Check circuit breaker
