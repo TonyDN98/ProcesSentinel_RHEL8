@@ -32,16 +32,15 @@ INSERT INTO STATUS_PROCESS (process_id, alarma, sound, notes) VALUES
 (4, 0, 0, 'System logging daemon'),
 (5, 0, 0, 'NTP client/server'),
 (6, 0, 0, 'PolicyKit authorization manager'),
-(7, 0, 0, 'User login management'),
-(8, 0, 0, 'Printing system'),
-(9, 0, 0, 'Mail transfer agent'),
-(10, 0, 0, 'Dynamic system tuning daemon'),
-(11, 0, 0, 'Audit daemon'),
-(12, 0, 0, 'Cron daemon'),
-(13, 0, 0, 'Apache HTTP server'),
-(14, 0, 0, 'MariaDB database server'),
-(15, 0, 0, 'Docker engine'),
-(16, 0, 0, 'Podman engine');
+(7, 0, 0, 'Printing system'),
+(8, 0, 0, 'Mail transfer agent'),
+(9, 0, 0, 'Dynamic system tuning daemon'),
+(10, 0, 0, 'Audit daemon'),
+(11, 0, 0, 'Cron daemon'),
+(12, 0, 0, 'Apache HTTP server'),
+(13, 0, 0, 'MariaDB database server'),
+(14, 0, 0, 'Docker engine'),
+(15, 0, 0, 'Podman engine');
 
 -- PROCESE: process_id, process_name
 INSERT INTO PROCESE (process_id, process_name) VALUES
@@ -51,16 +50,15 @@ INSERT INTO PROCESE (process_id, process_name) VALUES
 (4, 'rsyslogd'),
 (5, 'chronyd'),
 (6, 'polkitd'),
-(7, 'systemd-logind'),
-(8, 'cupsd'),
-(9, 'postfix'),
-(10, 'tuned'),
-(11, 'auditd'),
-(12, 'crond'),
-(13, 'httpd'),
-(14, 'mariadbd'),
-(15, 'dockerd'),
-(16, 'podman');
+(7, 'cupsd'),
+(8, 'postfix'),
+(9, 'tuned'),
+(10, 'auditd'),
+(11, 'crond'),
+(12, 'httpd'),
+(13, 'mariadbd'),
+(14, 'dockerd'),
+(15, 'podman');
 
 -- Add an index for faster queries
 CREATE INDEX idx_alarma ON STATUS_PROCESS(alarma);
