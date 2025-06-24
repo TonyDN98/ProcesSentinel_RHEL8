@@ -464,7 +464,8 @@ restart_process() {
 update_alarm_status() {
     local process_id="$1"
     local current_time=$(date '+%Y-%m-%d %H:%M:%S')
-
+    
+    # TO DO: FUNCTION WILL BE LATER DELETED, it's used only for testing purposes. The new user will have only SELECT permissions.
     # Use --defaults-file instead of passing credentials on command line
     # Added options to optimize connection handling:
     # --connect-timeout=5: Limit connection time to 5 seconds
