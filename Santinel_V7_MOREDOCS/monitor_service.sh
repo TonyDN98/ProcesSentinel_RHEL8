@@ -129,7 +129,13 @@ log() {
         rotate_logs
     fi
 
-    echo "$timestamp - $level - $message" | tee -a "$LOG_FILE"
+    # Format: YYYY-MM-DD HH:MM:SS [LEVEL] - Message
+    echo "$timestamp  [$level] - $message" | tee -a "$LOG_FILE"
+    
+    # If level is ERROR or higher, also log to syslog
+    if [[ "$level" == "ERROR" || "$level" == "CRITICAL" ]]; then
+        logger -p daemon.err "$timestamp [$level] $message"
+    fi
 }
 
 ###############################################################################
@@ -558,7 +564,9 @@ update_circuit_breaker() {
             log "WARNING" "Circuit breaker opened for $process_name after ${failure_counts[$process_name]} failures"
         fi
     else
+        # Reset failure count on success
         failure_counts[$process_name]=0
+        log "INFO" "Reset failure count for process: $process_name after successful restart"
     fi
 }
 
