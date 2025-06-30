@@ -222,7 +222,7 @@ get_alarm_processes() {
     # --quick: Reduce memory usage and speed up query execution
     # --compress: Reduce network traffic
     # --reconnect=FALSE: Prevent automatic reconnection attempts
-    mysql --defaults-file="$MYSQL_TEMP_CONFIG" --connect-timeout=5 --quick --compress --reconnect=FALSE -N <<EOF
+    mysql --defaults-file="$MYSQL_TEMP_CONFIG" --connect-timeout=5 --quick --compression-algorithms=zlib,uncompressed --reconnect=FALSE -N <<EOF
     SELECT CONCAT(p.process_id, '|', p.process_name, '|', s.alarma, '|', s.sound, '|', s.notes)
     FROM STATUS_PROCESS s
     JOIN PROCESE p ON s.process_id = p.process_id
@@ -484,7 +484,7 @@ update_alarm_status() {
     # --quick: Reduce memory usage and speed up query execution
     # --compress: Reduce network traffic
     # --reconnect=FALSE: Prevent automatic reconnection attempts
-    mysql --defaults-file="$MYSQL_TEMP_CONFIG" --connect-timeout=5 --quick --compress --reconnect=FALSE <<EOF
+    mysql --defaults-file="$MYSQL_TEMP_CONFIG" --connect-timeout=5 --quick --compression-algorithms=zlib,uncompressed --reconnect=FALSE <<EOF
     UPDATE STATUS_PROCESS 
     SET alarma = 0, notes = CONCAT(notes, ' - Restarted at $current_time')
     WHERE process_id = $process_id;
