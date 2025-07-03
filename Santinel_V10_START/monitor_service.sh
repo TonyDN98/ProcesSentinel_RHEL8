@@ -354,12 +354,47 @@ get_restart_strategy() {
     echo "$strategy"
 }
 
+
 ###############################################################################
 # Function: restart_process
-# Purpose:  Attempt to restart a process using its configured strategy.
-#           Handles service, process, custom, and auto strategies.
-#           Retries up to max_attempts with delay.
-# Returns:  0 on success, 1 on failure.
+# Purpose:  Încearcă să restarteze un proces folosind strategia configurată.
+#           Suportă strategiile: service, process, custom.
+#           Dacă procesul/serviciul nu rulează, îl pornește; dacă rulează, îl restartează.
+#           După fiecare încercare, efectuează un health check pentru a verifica succesul.
+#           Repetă până la max_attempts, cu pauză restart_delay între încercări.
+#
+# Parametri:
+#   $1 - process_name: Numele logic al procesului (cheia din config.ini).
+#
+# Comportament:
+#   - Obține strategia de restart, numărul maxim de încercări și delay-ul dintre încercări din config.
+#   - Obține numele real al serviciului/procesului (system_name) dacă este specificat.
+#   - Execută comanda pre-restart dacă este configurată (ex: verificare config, test sintaxă).
+#   - Pentru fiecare încercare:
+#       - Pentru strategia "service" sau "custom":
+#           - Dacă serviciul nu rulează (`systemctl is-active`), îl pornește cu `systemctl start`.
+#           - Dacă rulează, îl restartează cu `systemctl restart`.
+#           - După start/restart, rulează health check-ul configurat.
+#       - Pentru strategia "process":
+#           - Dacă procesul nu rulează (`pgrep`), încearcă să-l pornească direct (apel binar).
+#           - Dacă rulează, îl oprește cu `pkill`, apoi îl pornește din nou.
+#           - După start/restart, rulează health check-ul configurat.
+#       - Dacă health check-ul reușește, funcția returnează 0 (succes).
+#       - Dacă health check-ul eșuează, loghează eroarea și reia după restart_delay.
+#   - Dacă toate încercările eșuează, returnează 1.
+#
+# Return:
+#   0 - dacă procesul a fost restartat/pornit cu succes și a trecut health check-ul.
+#   1 - dacă toate încercările au eșuat.
+#
+# Exemple de utilizare:
+#   restart_process "sshd"
+#   restart_process "rsyslogd"
+#
+# Notă:
+#   - Strategia "custom" este tratată similar cu "service" (poate fi extinsă pentru comenzi custom).
+#   - Pentru procese simple, scriptul presupune că există un binar executabil cu același nume ca system_name.
+#   - Health check-ul este esențial pentru a valida că procesul/serviciul a pornit corect.
 ###############################################################################
 
 restart_process() {
