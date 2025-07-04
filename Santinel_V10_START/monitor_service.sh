@@ -390,11 +390,6 @@ get_restart_strategy() {
 # Exemple de utilizare:
 #   restart_process "sshd"
 #   restart_process "rsyslogd"
-#
-# Notă:
-#   - Strategia "custom" este tratată similar cu "service" (poate fi extinsă pentru comenzi custom).
-#   - Pentru procese simple, scriptul presupune că există un binar executabil cu același nume ca system_name.
-#   - Health check-ul este esențial pentru a valida că procesul/serviciul a pornit corect.
 ###############################################################################
 
 restart_process() {
