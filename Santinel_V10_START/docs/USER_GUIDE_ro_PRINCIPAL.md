@@ -21,7 +21,7 @@ Process Monitor Service este o soluție de monitorizare a sistemului care reporn
 
 - Monitorizarea și repornirea automată a proceselor
 - Strategii multiple de repornire (service, process, auto)
-- Verificări de sănătate pentru a confirma repornirile reușite
+- Heath Check pentru a confirma repornirile reușite
 - Model circuit breaker pentru a preveni încercările excesive de repornire
 - Jurnalizare cuprinzătoare cu rotație automată
 - Configurabil pentru diferite procese și medii
@@ -34,6 +34,7 @@ Process Monitor Service este o soluție de monitorizare a sistemului care reporn
 
 - RedHat Linux sau o distribuție compatibilă
 - MySQL Server 5.7 sau mai nou
+- User MySQL cu privilegii minime de SELECT
 - Bash 4.0 sau mai nou
 - systemd
 
@@ -74,13 +75,11 @@ Process Monitor Service este o soluție de monitorizare a sistemului care reporn
 
 5. **Configurați Serviciul**
 
-   Editați fișierul de configurare pentru a seta credențialele bazei de date și alte setări:
+   Editați fișierul de configurare pentru a seta serviciul:
 
    ```bash
-   sudo nano /opt/monitor_service/config.ini
+   sudo vim /opt/monitor_service/config.ini
    ```
-
-   La minimum, actualizați credențialele bazei de date în secțiunea [database].
 
 6. **Activați și Porniți Serviciul**
 
@@ -129,7 +128,7 @@ Fișierul de configurare este împărțit în mai multe secțiuni:
 ```ini
 [database]
 host = localhost
-user = root
+user = user
 password = your_password
 database = v_process_monitor
 ```
@@ -180,8 +179,10 @@ max_attempts = 2
 
 | Parametru | Descriere | Implicit |
 |-----------|-------------|---------|
+| system_name | Numele real al serviciului daca diferă | (numele găsit în baza de date) |
 | restart_strategy | Cum să repornească procesul: "service", "process", sau "auto" | auto |
-| pre_restart_command | Comandă de rulat înainte de încercarea de repornire | (niciunul) |
+| pre_restart_command | Comandă de rulat înainte de încercarea de repornire (opţional) | (niciunul) |
+| restart_command | Comandă de restart (pentru strategia custom) | (niciunul) |
 | health_check_command | Comandă pentru a verifica repornirea cu succes | pgrep %s |
 | health_check_timeout | Timpul maxim în secunde de așteptare pentru verificarea sănătății | 5 |
 | restart_delay | Întârziere în secunde între încercările de repornire | 2 |
@@ -423,73 +424,6 @@ Fișierul de jurnal (/var/log/monitor_service.log) conține informații detaliat
   ```
   2023-06-15 10:15:10 - WARNING - Circuit breaker opened for apache2 after 3 failures
   ```
-
-## Sarcini de Întreținere
-
-### Adăugarea unui Nou Proces de Monitorizat
-
-1. **Adăugați Procesul în Baza de Date**
-
-   ```sql
-   USE v_process_monitor;
-
-   -- Add to STATUS_PROCESS table
-   INSERT INTO STATUS_PROCESS (process_id, alarma, sound, notes) 
-   VALUES (6, 0, 0, 'New process');
-
-   -- Add to PROCESE table
-   INSERT INTO PROCESE (process_id, process_name) 
-   VALUES (6, 'new_process_name');
-   ```
-
-2. **Adăugați Configurație Specifică Procesului (Opțional)**
-
-   Editați `/opt/monitor_service/config.ini` și adăugați o nouă secțiune:
-
-   ```ini
-   [process.new_process_name]
-   restart_strategy = service
-   health_check_command = systemctl is-active new_process_name
-   health_check_timeout = 10
-   restart_delay = 5
-   max_attempts = 2
-   ```
-
-3. **Testați Configurația**
-
-   Utilizați scriptul test_alarm.sh pentru a seta noul proces în stare de alarmă și verificați dacă serviciul de monitorizare îl poate reporni.
-
-### Actualizarea Serviciului
-
-1. **Opriți Serviciul**
-
-   ```bash
-   sudo systemctl stop monitor_service
-   ```
-
-2. **Faceți Backup la Configurație**
-
-   ```bash
-   sudo cp /opt/monitor_service/config.ini /opt/monitor_service/config.ini.bak
-   ```
-
-3. **Copiați Noile Fișiere**
-
-   ```bash
-   sudo cp monitor_service.sh /opt/monitor_service/
-   ```
-
-4. **Setați Permisiunile**
-
-   ```bash
-   sudo chmod 700 /opt/monitor_service/monitor_service.sh
-   ```
-
-5. **Porniți Serviciul**
-
-   ```bash
-   sudo systemctl start monitor_service
-   ```
 
 ## Întrebări Frecvente
 
