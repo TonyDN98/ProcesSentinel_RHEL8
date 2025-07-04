@@ -4,7 +4,7 @@
 
 ### Componente Principale
 
-Process Monitor Service constă din următoarele fișiere cheie:
+Process Monitor Service constă din următoarele fișiere:
 
 1. **monitor_service.sh**: Script-ul principal al serviciului
 2. **config.ini**: Fișier de configurare

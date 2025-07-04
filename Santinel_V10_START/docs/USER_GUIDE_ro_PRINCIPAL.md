@@ -10,8 +10,7 @@ Acest ghid oferă instrucțiuni pentru administratorii de sistem despre cum să 
 4. [Utilizarea Serviciului](#utilizarea-serviciului)
 5. [Testare](#testare)
 6. [Depanare](#depanare)
-7. [Sarcini de Întreținere](#sarcini-de-întreținere)
-8. [Întrebări Frecvente](#întrebări-frecvente)
+7. [Întrebări Frecvente](#întrebări-frecvente)
 
 ## Introducere
 
