@@ -1,7 +1,5 @@
 # Process Monitor Service - Ghid pentru Dezvoltatori
 
-Acest document oferă informații tehnice detaliate pentru dezvoltatorii care lucrează la Process Monitor Service. Acoperă structura codului, funcțiile cheie, modelele de design și ghiduri pentru extinderea serviciului.
-
 ## Structura Codului
 
 ### Componente Principale
@@ -13,7 +11,6 @@ Process Monitor Service constă din următoarele fișiere cheie:
 3. **monitor_service.service**: Definiția serviciului Systemd
 4. **setup.sql**: Script de configurare a bazei de date
 5. **test_alarm.sh**: Script interactiv de testare
-6. **simple_test.sh**: Script neinteractiv de testare
 
 ### Organizarea Script-ului
 
@@ -505,22 +502,6 @@ Pentru a depana serviciul:
 3. **Eșecuri de Repornire a Proceselor**: Verificați dacă procesul există și poate fi repornit
 4. **Eșecuri de Verificare a Sănătății**: Verificați dacă comanda de verificare a sănătății funcționează corect
 
-## Ghid de Stil pentru Cod
 
-1. **Nume de Funcții**: Utilizați litere mici cu underscore (snake_case)
-2. **Nume de Variabile**: Utilizați majuscule pentru variabilele globale, litere mici pentru variabilele locale
-3. **Indentare**: Utilizați 4 spații pentru indentare
-4. **Comentarii**: Adăugați comentarii pentru logica complexă și descrierile funcțiilor
-5. **Gestionarea Erorilor**: Verificați codurile de returnare și gestionați erorile în mod corespunzător
-6. **Jurnalizare**: Utilizați niveluri de jurnalizare adecvate (INFO, WARNING, ERROR, DEBUG)
 
-## Ghid pentru Controlul Versiunilor
 
-1. **Mesaje de Commit**: Utilizați mesaje de commit clare și descriptive
-2. **Branching**: Creați branch-uri pentru funcționalități noi
-3. **Testare**: Testați modificările înainte de a face commit
-4. **Documentație**: Actualizați documentația când faceți modificări
-
-## Concluzie
-
-Acest ghid pentru dezvoltatori oferă o prezentare cuprinzătoare a structurii codului Process Monitor Service, a funcțiilor cheie, a modelelor de design și a ghidurilor pentru extinderea serviciului. Urmând aceste ghiduri, dezvoltatorii pot menține și extinde serviciul într-un mod consistent și fiabil.

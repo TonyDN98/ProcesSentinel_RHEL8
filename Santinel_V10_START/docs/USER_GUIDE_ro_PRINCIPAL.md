@@ -311,20 +311,6 @@ Acest script vă permite să:
 - Setați toate serviciile în stare de alarmă
 - Resetați toate alarmele
 
-### Testare Automată cu simple_test.sh
-
-Pentru testare automată, utilizați scriptul `simple_test.sh`:
-
-```bash
-chmod +x simple_test.sh
-./simple_test.sh
-```
-
-Acest script:
-1. Setează un serviciu (apache2) în stare de alarmă
-2. Verifică dacă a fost setat corect
-3. Oferă instrucțiuni pentru finalizarea testului prin rularea serviciului de monitorizare
-
 ### Flux de Testare
 
 1. Utilizați unul dintre scripturile de testare pentru a seta un serviciu în stare de alarmă
@@ -372,18 +358,6 @@ Acest script:
   ```
 
   Asigurați-vă că MySQL rulează.
-
-- **Verificați Credențialele Bazei de Date**
-
-  Asigurați-vă că credențialele din config.ini sunt corecte.
-
-- **Testați Conexiunea la Baza de Date**
-
-  ```bash
-  mysql -u root -p -e "USE v_process_monitor; SELECT * FROM PROCESE;"
-  ```
-
-  Verificați dacă vă puteți conecta la baza de date și interoga tabelele.
 
 #### Eșecuri de Repornire a Proceselor
 
@@ -516,18 +490,6 @@ Fișierul de jurnal (/var/log/monitor_service.log) conține informații detaliat
    ```bash
    sudo systemctl start monitor_service
    ```
-
-### Backup-ul Bazei de Date
-
-```bash
-mysqldump -u root -p v_process_monitor > v_process_monitor_backup.sql
-```
-
-### Restaurarea Bazei de Date
-
-```bash
-mysql -u root -p v_process_monitor < v_process_monitor_backup.sql
-```
 
 ## Întrebări Frecvente
 

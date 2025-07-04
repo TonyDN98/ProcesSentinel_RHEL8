@@ -10,8 +10,8 @@ ExecStart=/opt/monitor_service/monitor_service.sh
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=always
 RestartSec=10
-StandardOutput=journal
-StandardError=journal
+StandardOutput=journal+console
+StandardError=journal+console
 SyslogIdentifier=monitor_service
 
 [Install]
