@@ -9,7 +9,7 @@ Process Monitor Service constă din următoarele fișiere:
 1. **monitor_service.sh**: Script-ul principal al serviciului
 2. **config.ini**: Fișier de configurare
 3. **monitor_service.service**: Definiția serviciului Systemd
-4. **setup.sql**: Script de configurare a bazei de date
+4. **setup.sql**: Script de configurare a bazei de date în mediul de testare
 5. **test_alarm.sh**: Script interactiv de testare
 
 ### Organizarea Script-ului

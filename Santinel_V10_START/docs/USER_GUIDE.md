@@ -62,7 +62,7 @@ Process Monitor Service este o soluție de monitorizare a sistemului care reporn
    sudo chown -R root:root /opt/monitor_service
    ```
 
-4. **Configurați Baza de Date**
+4. **Configurați Baza de Date [Mediul de testare]**
 
    ```bash
    # Porniți serviciul MySQL dacă nu rulează
@@ -183,7 +183,7 @@ max_attempts = 2
 | pre_restart_command | Comandă de rulat înainte de încercarea de repornire (opţional) | (niciunul) |
 | restart_command | Comandă de restart (pentru strategia custom) | (niciunul) |
 | health_check_command | Comandă pentru a verifica repornirea cu succes | pgrep %s |
-| health_check_timeout | Timpul maxim în secunde de așteptare pentru verificarea sănătății | 5 |
+| health_check_timeout | Timpul maxim în secunde de așteptare pentru health check | 5 |
 | restart_delay | Întârziere în secunde între încercările de repornire | 2 |
 | max_attempts | Numărul maxim de încercări de repornire per ciclu | 2 |
 
@@ -220,7 +220,7 @@ Această configurare:
 - Utilizează strategia de repornire service
 - Rulează un test de configurare înainte de repornire
 - Verifică repornirea verificând dacă serverul web răspunde la cereri HTTP
-- Permite până la 15 secunde pentru ca verificarea sănătății să treacă
+- Permite până la 15 secunde pentru ca health check să treacă
 - Așteaptă 5 secunde între încercările de repornire
 - Încearcă până la 3 încercări de repornire
 
@@ -238,7 +238,7 @@ max_attempts = 2
 Această configurare:
 - Utilizează strategia de repornire service
 - Verifică repornirea verificând dacă MySQL răspunde la ping
-- Permite până la 30 de secunde pentru ca verificarea sănătății să treacă
+- Permite până la 30 de secunde pentru ca health check să treacă
 - Așteaptă 10 secunde între încercările de repornire
 - Încearcă până la 2 încercări de repornire
 
@@ -385,7 +385,7 @@ Acest script vă permite să:
 
 ### Înțelegerea Mesajelor de Jurnal
 
-Fișierul de jurnal (/var/log/monitor_service.log) conține informații detaliate despre operațiunea serviciului:
+Fișierul de jurnal (**/var/log/monitor_service.log**) conține informații detaliate despre operațiunea serviciului:
 
 - Mesajele de nivel **INFO** indică operarea normală
 - Mesajele de nivel **WARNING** indică probleme potențiale
@@ -428,27 +428,19 @@ Fișierul de jurnal (/var/log/monitor_service.log) conține informații detaliat
 
 ### Cum știe serviciul ce procese să monitorizeze?
 
-Serviciul monitorizează procesele listate în tabelul PROCESE din baza de date MySQL. Fiecare proces are o intrare corespunzătoare în tabelul STATUS_PROCESS care îi urmărește starea de alarmă.
+Serviciul monitorizează procesele listate în tabelul **PROCESE** din baza de date MySQL. Fiecare proces are o intrare corespunzătoare în tabelul **STATUS_PROCESS** care îi urmărește starea de alarmă.
 
 ### Cum decide serviciul când să repornească un proces?
 
-Serviciul verifică tabelul STATUS_PROCESS pentru procesele cu alarma=1. Când găsește un proces în stare de alarmă, încearcă să-l repornească folosind strategia configurată.
+Serviciul verifică tabelul **STATUS_PROCESS** pentru procesele cu **alarma=1** şi **sound=0**. Când găsește un proces în stare de alarmă care nu este bifat, încearcă să-l repornească folosind strategia configurată.
 
 ### Ce este modelul circuit breaker?
 
-Modelul circuit breaker previne încercările excesive de repornire pentru procesele care eșuează. După un număr configurabil de eșecuri, circuit breaker-ul "se deschide" și blochează încercările ulterioare de repornire pentru o perioadă de timp. Acest lucru previne epuizarea resurselor și eșecurile în cascadă.
+Modelul **circuit breaker** previne încercările excesive de repornire pentru procesele care eșuează. După un număr configurabil de eșecuri, circuit breaker-ul "se deschide" și blochează încercările ulterioare de repornire pentru o perioadă de timp. Acest lucru previne epuizarea resurselor și eșecurile în cascadă.
 
-### Cum pot adăuga verificări de sănătate personalizate?
+### Cum pot adăuga health checkuri personalizate?
 
-Puteți adăuga verificări de sănătate personalizate configurând parametrul health_check_command pentru un proces. Această comandă ar trebui să returneze codul de ieșire 0 dacă procesul este sănătos, sau non-zero dacă este nesănătos.
-
-### Poate serviciul să monitorizeze procese pe servere la distanță?
-
-Serviciul este proiectat pentru a monitoriza și reporni procese pe sistemul local. Cu toate acestea, ați putea folosi potențial comenzi SSH în health_check_command și pre_restart_command pentru a interacționa cu servere la distanță.
-
-### Cum pot fi notificat când un proces eșuează?
-
-Serviciul înregistrează în prezent toate încercările de repornire și eșecurile. L-ați putea extinde adăugând un mecanism de notificare, cum ar fi trimiterea de e-mailuri sau integrarea cu un sistem de monitorizare.
+Puteți adăuga health check personalizat configurând parametrul health_check_command pentru un proces. Această comandă ar trebui să returneze codul de ieșire 0 dacă procesul este ON, sau non-zero dacă este OFF.
 
 ### Ce se întâmplă dacă baza de date MySQL este oprită?
 
@@ -462,7 +454,3 @@ Editați fișierul config.ini și actualizați parametrul check_interval din sec
 [monitor]
 check_interval = 300  # 5 minutes
 ```
-
-### Pot folosi acest serviciu cu sisteme non-systemd?
-
-Da, serviciul suportă gestionarea directă a proceselor folosind strategia de repornire "process". Cu toate acestea, unele funcționalități pot fi limitate pe sistemele non-systemd.

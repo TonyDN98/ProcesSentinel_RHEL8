@@ -69,7 +69,7 @@ check_log_rotation() {
     # Get file size in KB
     local file_size=$(du -k "$LOG_FILE" | cut -f1)
 
-    # Guard: Ensure MAX_LOG_SIZE is set and numeric
+    # Ensure MAX_LOG_SIZE is set and numeric
     if [ -z "$MAX_LOG_SIZE" ] || ! [[ "$MAX_LOG_SIZE" =~ ^[0-9]+$ ]]; then
         echo "ERROR: MAX_LOG_SIZE is not set or not a valid integer (value: '$MAX_LOG_SIZE')" >&2
         return 1
