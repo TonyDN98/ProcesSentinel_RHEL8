@@ -16,9 +16,9 @@ MYSQL_TEMP_CONFIG=$(mktemp)
 
 ###############################################################################
 # Function: create_mysql_config
-# Purpose:  Create a temporary MySQL client config file with credentials.
-#           This avoids passing credentials on the command line.
-#           Function to create MySQL config file.
+# Purpose:  Creează un fișier temporar de configurare MySQL cu credențiale.
+#           Evită transmiterea credențialelor în linia de comandă.
+#           Scrie parametrii de conectare în fișierul temporar.
 ###############################################################################
 
 create_mysql_config() {
@@ -40,9 +40,8 @@ EOF
 
 ###############################################################################
 # Function: cleanup_mysql_config
-# Purpose:  Remove the temporary MySQL config file on script exit.
-#           This ensures sensitive information is not left on disk.
-#           Function to clean up MySQL config file.
+# Purpose:  Șterge fișierul temporar de configurare MySQL la ieșirea scriptului.
+#           Asigură eliminarea informațiilor sensibile de pe disc.
 ###############################################################################
 
 cleanup_mysql_config() {
@@ -56,8 +55,9 @@ trap cleanup_mysql_config EXIT
 
 ###############################################################################
 # Function: check_log_rotation
-# Purpose:  Determine if the log file exceeds the configured size and needs rotation.
-# Returns:  0 if rotation needed, 1 otherwise.
+# Purpose:  Verifică dacă fișierul de log depășește dimensiunea configurată și
+#           dacă este necesară rotirea acestuia.
+# Returnează: 0 dacă este necesară rotirea, 1 altfel.
 ###############################################################################
 
 check_log_rotation() {
@@ -85,7 +85,7 @@ check_log_rotation() {
 
 ###############################################################################
 # Function: rotate_logs
-# Purpose:  Rotate log files, keeping only the configured number of backups.
+# Purpose:  Rotește fișierele de log, păstrând doar numărul configurat de backup-uri.
 ###############################################################################
 
 rotate_logs() {
@@ -122,7 +122,8 @@ rotate_logs() {
 
 ###############################################################################
 # Function: log
-# Purpose:  Write a timestamped log message, rotating logs if needed.
+# Purpose:  Scrie un mesaj de log cu timestamp, rotește logul dacă este necesar.
+#           Mesajele de nivel ERROR/CRITICAL sunt trimise și către syslog.
 ###############################################################################
 
 log() {
@@ -146,9 +147,8 @@ log() {
 
 ###############################################################################
 # Function: read_config
-# Purpose:  Read configuration from config.ini
-#           Parse the config.ini file and export required variables.
-#           Validates presence and numeric type for critical settings.
+# Purpose:  Citește și parsează configurația din config.ini.
+#           Exportă variabilele necesare și validează valorile critice.
 ###############################################################################
 
 read_config() {
@@ -210,9 +210,9 @@ read_config() {
 
 ###############################################################################
 # Function: get_alarm_processes
-# Purpose:  Query the database for processes in alarm state (alarma=1, sound=0)
-#           Get processes in alarm state
-# Output:   Each line: process_id|process_name|alarma|sound|notes
+# Purpose:  Interoghează baza de date pentru procesele aflate în stare de alarmă
+#           (alarma=1, sound=0). Returnează fiecare proces pe o linie.
+# Output:   Fiecare linie: process_id|process_name|alarma|sound|notes
 ###############################################################################
 
 get_alarm_processes() {
@@ -233,13 +233,12 @@ EOF
 
 ###############################################################################
 # Function: get_process_config
-# Purpose:  Retrieve a process-specific configuration value, falling back to
-#           [process.default] or a provided default if not found.
-#           Get process-specific configuration
+# Purpose:  Obține o valoare de configurare specifică unui proces, cu fallback
+#           la [process.default] sau la o valoare implicită dacă nu este găsită.
 # Arguments:
-#   $1 - process name
-#   $2 - parameter name
-#   $3 - default value (optional)
+#   $1 - numele procesului
+#   $2 - numele parametrului
+#   $3 - valoare implicită (opțional)
 ###############################################################################
 
 get_process_config() {
@@ -260,6 +259,14 @@ get_process_config() {
 }
 
 # Helper: get the real system name for a process (from config, fallback to process_name)
+###############################################################################
+# Function: get_system_name
+# Purpose:  Returnează numele real al sistemului pentru un proces, dacă este
+#           specificat în config, altfel returnează numele procesului.
+# Arguments:
+#   $1 - numele procesului
+###############################################################################
+
 get_system_name() {
     local process_name="$1"
     local system_name=$(get_process_config "$process_name" "system_name" "")
@@ -272,8 +279,10 @@ get_system_name() {
 
 ###############################################################################
 # Function: execute_pre_restart
-# Purpose:  Run a pre-restart command for a process if configured.
-# Returns:  0 on success, 1 on failure.
+# Purpose:  Rulează o comandă pre-restart pentru un proces dacă este configurată.
+# Returnează: 0 la succes, 1 la eșec.
+# Arguments:
+#   $1 - numele procesului
 ###############################################################################
 
 execute_pre_restart() {
@@ -292,9 +301,11 @@ execute_pre_restart() {
 
 ###############################################################################
 # Function: perform_health_check
-# Purpose:  Run a health check command for a process, retrying until timeout.
-#           Perform health check after restart
-# Returns:  0 if health check passes, 1 if it fails after timeout.
+# Purpose:  Rulează o comandă de health check pentru un proces, cu retry până la timeout.
+#           Dacă nu există health check configurat, presupune succes.
+# Returnează: 0 dacă health check-ul trece, 1 dacă eșuează după timeout.
+# Arguments:
+#   $1 - numele procesului
 ###############################################################################
 
 perform_health_check() {
@@ -346,7 +357,9 @@ perform_health_check() {
 
 ###############################################################################
 # Function: get_restart_strategy
-# Purpose:  Get the restart strategy for a process (service, process, custom, auto).
+# Purpose:  Obține strategia de restart pentru un proces (service, process, custom, auto).
+# Arguments:
+#   $1 - numele procesului
 ###############################################################################
 
 get_restart_strategy() {
@@ -354,7 +367,6 @@ get_restart_strategy() {
     local strategy=$(get_process_config "$process_name" "restart_strategy" "auto")
     echo "$strategy"
 }
-
 
 ###############################################################################
 # Function: restart_process
@@ -370,7 +382,7 @@ get_restart_strategy() {
 # Comportament:
 #   - Obține strategia de restart, numărul maxim de încercări și delay-ul dintre încercări din config.
 #   - Obține numele real al serviciului/procesului (system_name) dacă este specificat.
-#   - Execută comanda pre-restart dacă este configurată (ex: verificare config, test sintaxă).
+#   - Execută comanda pre-restart dacă este configurată.
 #   - Pentru fiecare încercare:
 #       - Pentru strategia "service" sau "custom":
 #           - Dacă serviciul nu rulează (`systemctl is-active`), îl pornește cu `systemctl start`.
@@ -477,6 +489,15 @@ restart_process() {
 }
 
 # Update alarm status in database
+###############################################################################
+# Function: update_alarm_status
+# Purpose:  Actualizează statusul de alarmă în baza de date pentru un proces.
+#           (Doar pentru testare, utilizatorul final va avea doar SELECT)
+# Arguments:
+#   $1 - process_id
+# Returnează: 0 la succes, 1 la eșec.
+###############################################################################
+
 update_alarm_status() {
     local process_id="$1"
     local current_time=$(date '+%Y-%m-%d %H:%M:%S')
@@ -505,8 +526,8 @@ EOF
 
 ###############################################################################
 # Circuit Breaker Pattern
-# Purpose:  Prevents repeated restart attempts for failing processes.
-#           Opens circuit after N failures, resets after a cooldown.
+# Purpose:  Previne încercările repetate de restart pentru procesele care eșuează.
+#           Deschide circuitul după N eșecuri, îl resetează după un cooldown.
 ###############################################################################
 
 declare -A circuit_breaker
@@ -515,9 +536,11 @@ declare -A last_failure_times
 
 ###############################################################################
 # Function: check_circuit_breaker
-# Purpose:  Check if the circuit breaker is open for a process.
-#           If open, skip restart until reset time has elapsed.
-# Returns:  0 if closed, 1 if open.
+# Purpose:  Verifică dacă circuit breaker-ul este deschis pentru un proces.
+#           Dacă este deschis, omite restartul până la expirarea timpului de reset.
+# Returnează: 0 dacă e închis, 1 dacă e deschis.
+# Arguments:
+#   $1 - numele procesului
 ###############################################################################
 
 check_circuit_breaker() {
@@ -557,9 +580,13 @@ check_circuit_breaker() {
 
 ###############################################################################
 # Function: update_circuit_breaker
-# Purpose:  Update the circuit breaker state after a restart attempt.
-#           Opens the circuit if failures exceed threshold.
+# Purpose:  Actualizează starea circuit breaker-ului după o încercare de restart.
+#           Deschide circuitul dacă numărul de eșecuri depășește pragul.
+# Arguments:
+#   $1 - numele procesului
+#   $2 - "true" dacă restartul a reușit, "false" dacă a eșuat
 ###############################################################################
+
 update_circuit_breaker() {
     local process_name="$1"
     local success="$2"
@@ -582,8 +609,9 @@ update_circuit_breaker() {
 
 ###############################################################################
 # Function: main
-# Purpose:  Main monitoring loop. Checks for alarmed processes, attempts restarts,
-#           updates database and circuit breaker state, and waits for next interval.
+# Purpose:  Bucla principală de monitorizare. Verifică procesele în alarmă,
+#           încearcă restart, actualizează baza de date și circuit breaker-ul,
+#           și așteaptă până la următoarea verificare.
 ###############################################################################
 # Main monitoring loop
 main() {
