@@ -65,7 +65,9 @@ get_process_config() {
 
 #### `log()`
 
-Scrie mesaje de jurnal cu marcaj de timp și nivel.
+Scrie un mesaj de log cu timestamp, rotește logul dacă este necesar. Mesajele de nivel **ERROR/CRITICAL** sunt trimise și către syslog.
+
+
 
 ```bash
 log() {
@@ -74,7 +76,17 @@ log() {
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
 
     # Check if log rotation is needed
-    # Write to log file and stdout
+    if check_log_rotation; then
+        rotate_logs
+    fi
+
+    # Format: YYYY-MM-DD HH:MM:SS [LEVEL] - Message
+    echo "$timestamp  [$level] - $message" | tee -a "$LOG_FILE"
+    
+    # If level is ERROR or higher, also log to syslog
+    if [[ "$level" == "ERROR" || "$level" == "CRITICAL" ]]; then
+        logger -p daemon.err "$timestamp [$level] $message"
+    fi
 }
 ```
 
@@ -320,7 +332,7 @@ Serviciul implementează o gestionare robustă a erorilor:
 1. **Validarea Configurației**: Validează toți parametrii de configurare
 2. **Erori de Conexiune la Baza de Date**: Înregistrează erorile și continuă operațiunea
 3. **Eșecuri de Repornire**: Implementează circuit breaker pentru a preveni încercările excesive de repornire
-4. **Eșecuri de Verificare a Sănătății**: Înregistrează eșecurile și consideră repornirea nereușită
+4. **Eșecuri de Health Check**: Înregistrează eșecurile și consideră repornirea nereușită
 
 ## Extinderea Serviciului
 
