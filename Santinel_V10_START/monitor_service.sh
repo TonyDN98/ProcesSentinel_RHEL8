@@ -226,7 +226,8 @@ get_alarm_processes() {
     SELECT CONCAT(p.process_id, '|', p.process_name, '|', s.alarma, '|', s.sound, '|', s.notes)
     FROM STATUS_PROCESS s
     JOIN PROCESE p ON s.process_id = p.process_id
-    WHERE s.alarma = 1 AND s.sound = 0;
+    WHERE s.alarma = 1 AND s.sound = 0
+    AND p.process_id NOT IN ();
 EOF
 }
 
