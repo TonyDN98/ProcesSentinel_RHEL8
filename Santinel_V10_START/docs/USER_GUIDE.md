@@ -359,30 +359,6 @@ Acest script vă permite să:
 
   Asigurați-vă că MySQL rulează.
 
-#### Eșecuri de Repornire a Proceselor
-
-- **Verificați Starea Procesului**
-
-  ```bash
-  systemctl status <process_name>
-  ```
-
-  Verificați dacă procesul există și poate fi gestionat de systemd.
-
-- **Verificați Comanda de Verificare a Sănătății**
-
-  Rulați manual comanda de verificare a sănătății pentru a vedea dacă funcționează:
-
-  ```bash
-  <health_check_command>
-  ```
-
-  Comanda ar trebui să returneze codul de ieșire 0 dacă procesul este sănătos.
-
-- **Verificați Comanda Pre-repornire**
-
-  Dacă este configurată, rulați manual comanda pre-repornire pentru a verifica dacă funcționează.
-
 ### Înțelegerea Mesajelor de Jurnal
 
 Fișierul de jurnal (**/var/log/monitor_service.log**) conține informații detaliate despre operațiunea serviciului:

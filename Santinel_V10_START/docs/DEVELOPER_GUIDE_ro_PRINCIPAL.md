@@ -193,7 +193,7 @@ execute_pre_restart() {
 
 #### `perform_health_check()`
 
-Verifică repornirea cu succes folosind comanda de verificare a sănătății configurată.
+Verifică repornirea cu succes folosind comanda de health check configurată.
 
 ```bash
 perform_health_check() {
@@ -456,8 +456,11 @@ Exemplu:
 sudo ./monitor_service.sh
 
 # Verify the process was restarted and alarm cleared
-mysql -u root -p -e "USE v_process_monitor; SELECT alarma FROM STATUS_PROCESS WHERE process_id = 1;"
-# Should return 0
+mysql -u root -p -e "USE v_process_monitor; SELECT sp.process_id, p.process_name
+FROM STATUS_PROCESS sp
+JOIN PROCESE p ON sp.process_id = p.process_id
+WHERE sp.alarma = 1
+ORDER BY sp.process_id;"
 ```
 
 ## Considerații de Performanță
@@ -486,7 +489,7 @@ Serviciul are cerințe minime de memorie:
 2. Curăță fișierele temporare
 3. Implementează rotația jurnalelor pentru a preveni problemele de spațiu pe disc
 
-## Depanare pentru Dezvoltatori
+## Depanare
 
 ### Debugging
 
@@ -506,14 +509,6 @@ Pentru a depana serviciul:
    ```bash
    mysql -u root -p -e "USE v_process_monitor; SELECT * FROM STATUS_PROCESS JOIN PROCESE USING (process_id);"
    ```
-
-### Probleme Comune de Dezvoltare
-
-1. **Permisiune Refuzată**: Asigurați-vă că scriptul are permisiuni de execuție și este rulat ca root
-2. **Eșecuri de Conexiune la Baza de Date**: Verificați credențialele bazei de date și conectivitatea
-3. **Eșecuri de Repornire a Proceselor**: Verificați dacă procesul există și poate fi repornit
-4. **Eșecuri de Verificare a Sănătății**: Verificați dacă comanda de verificare a sănătății funcționează corect
-
 
 
 
