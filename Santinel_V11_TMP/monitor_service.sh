@@ -471,6 +471,13 @@ restart_process() {
 # Returnează: 0 la succes, 1 la eșec.
 ###############################################################################
 
+# TO DO: FUNCTION WILL BE LATER DELETED, it's used only for testing purposes. The new user will have only SELECT permissions.
+# Use --defaults-file instead of passing credentials on command line
+# Added options to optimize connection handling:
+# --connect-timeout=5: Limit connection time to 5 seconds
+# --quick: Reduce memory usage and speed up query execution
+# --compress: Reduce network traffic
+# --reconnect=FALSE: Prevent automatic reconnection attempts
 update_alarm_status() {
     local process_id="$1"
     local current_time=$(date '+%Y-%m-%d %H:%M:%S')
