@@ -1,313 +1,207 @@
-# Process Monitor Service (Bash Implementation)
+# Process Monitor Service (Santinel)
 
 ## Overview
-This service monitors processes by checking their status in a MySQL database and automatically restarts them when they enter an alarm state. Designed specifically for RedHat Linux environments, it provides robust process monitoring and management capabilities with circuit breaker pattern implementation to prevent cascading failures.
-> Database queries in `monitor_service.sh` were optimized by adding connection handling options to ensure quick closure after each query. Changes included `--connect-timeout=5`, `--quick`, `--compress`, and `--reconnect=FALSE` for both query functions. This prevents connection congestion from frequent queries.
 
+Santinel is a robust and flexible process monitoring service written in Bash. It is designed to run on RedHat-based Linux distributions. The service monitors a list of processes defined in a MySQL database and automatically restarts them if they enter an alarm state. It features a circuit breaker pattern to prevent cascading failures, customizable restart strategies, and comprehensive logging.
 
-## Instalare
+## Features
 
-### 1. Pregătirea sistemului
+*   **Database-Driven Monitoring:** Monitors processes based on their status in a MySQL database.
+*   **Multiple Restart Strategies:** Supports `service`, `process`, `custom`, and `auto` restart strategies.
+*   **Circuit Breaker:** Prevents continuous restart attempts of failing processes.
+*   **Health Checks:** Verifies the process status after a restart using custom commands.
+*   **Comprehensive Logging:** Logs to both a file and syslog with automatic log rotation.
+*   **Flexible Configuration:** All settings are managed through a single `config.ini` file.
+*   **Pre-Restart Hooks:** Allows running custom commands before a restart attempt.
+*   **Man Page:** Includes a man page for easy access to documentation.
 
-```bash
-# Actualizarea sistemului
-sudo dnf update -y
+## Requirements
 
-# Instalarea dependențelor necesare
-sudo dnf install -y mysql-server mysql-client
-```
-
-### 2. Configurarea directorului de serviciu
-
-```bash
-# Crearea directorului pentru serviciu
-sudo mkdir -p /opt/monitor_service
-
-# Copierea fișierelor necesare
-sudo cp monitor_service.sh /opt/monitor_service/
-sudo cp config.ini /opt/monitor_service/
-
-# Setarea permisiunilor
-sudo chmod 755 /opt/monitor_service
-sudo chmod 700 /opt/monitor_service/monitor_service.sh
-sudo chmod 600 /opt/monitor_service/config.ini
-```
-
-### 3. Configurarea MySQL
-
-```bash
-# Pornirea serviciului MySQL
-sudo systemctl enable mysqld
-sudo systemctl start mysqld
-
-# Rularea scriptului de configurare
-sudo mysql < setup.sql
-```
-
-### 4. Configurarea serviciului systemd
-
-```bash
-# Copierea fișierului de serviciu
-sudo cp monitor_service.service /etc/systemd/system/
-
-# Reîncărcarea daemon-ului systemd
-sudo systemctl daemon-reload
-
-# Activarea și pornirea serviciului
-sudo systemctl enable monitor_service
-sudo systemctl start monitor_service
-```
-#### Man page for service
-```bash
-sudo cp monitor_service.8 /usr/share/man/man8/
-sudo mandb
-man monitor_service
-```
-
-```bash
-# Verifică drepturile de execuție
-chmod +x monitor_service.sh
-
-# Rulează scriptul cu debugging
-bash -x ./monitor_service.sh
-```
-
-```bash
-chmod 644 config.ini
-```
-
-Probleme cu permisiunile:
-   ```bash
-   sudo chown -R root:root /opt/monitor_service
-   sudo chmod 700 /opt/monitor_service/monitor_service.sh
-   sudo chmod 600 /opt/monitor_service/config.ini
-   ```
-
-
-## Core Functionality
-1. **Database Monitoring**
-   - Continuously monitors MySQL database for processes in alarm state
-   - Tracks process status through STATUS_PROCESS and PROCESE tables
-   - Uses efficient SQL queries with JOIN operations
-
-2. **Process Management**
-   - Primary method: systemd service management via `systemctl`
-   - Fallback method: direct process management using `pkill` and process restart
-   - Intelligent handling of both service and standalone processes
-   - Health checks after restarts to verify successful recovery
-
-3. **Circuit Breaker Pattern**
-   - Prevents continuous restart attempts of failing processes
-   - Configurable failure thresholds and reset times
-   - Automatic circuit reset after cooling period
-
-4. **Logging System**
-   - Comprehensive logging to both file (`/var/log/monitor_service.log`) and syslog
-   - Detailed timestamp and log level information
-   - Process restart attempts and outcomes tracking
-   - Automatic log rotation based on file size
-   - Configurable number of log files to keep
-
-#### Custom restart command
-```ini
-# Config.ini
-[process.custom_example]
-restart_strategy = custom
-restart_command = /usr/local/bin/custom_restart.sh %s
-health_check_command = pgrep %s
-health_check_timeout = 10
-restart_delay = 3
-max_attempts = 2
-```
-
-```bash
-#.sh in case strategy
-           "custom")
-                # Get custom restart command
-                local restart_command=$(get_process_config "$process_name" "restart_command" "")
-
-                # Check if restart command is configured
-                if [ -z "$restart_command" ]; then
-                    log "ERROR" "RESTART LOG: No restart command configured for $process_name with custom strategy"
-                    return 1
-                fi
-
-                # Replace %s with process name if present in the command
-                restart_command=$(echo "$restart_command" | sed "s/%s/$process_name/g")
-
-                log "INFO" "RESTART LOG: Executing custom restart command for $process_name: $restart_command"
-
-                # Execute custom restart command
-                if eval "$restart_command" >/dev/null 2>&1; then
-                    log "INFO" "RESTART LOG: Custom restart command executed for: $process_name"
-                    # Perform health check after restart
-                    if perform_health_check "$process_name"; then
-                        log "INFO" "RESTART LOG: Successfully restarted and verified process: $process_name"
-                        return 0
-                    else
-                        log "ERROR" "RESTART LOG: Custom restart command succeeded but health check failed for: $process_name"
-                    fi
-                else
-                    log "ERROR" "RESTART LOG: Custom restart command failed for: $process_name"
-                fi
-                ;;
-
-
-```
-
-
-## Configuration
-The service uses `config.ini` with the following sections:
-
-```ini
-[database]
-host = localhost
-user = root
-password = your_password
-database = v_process_monitor
-
-[monitor]
-check_interval = 300        # Check interval in seconds
-max_restart_failures = 3    # Maximum restart attempts before circuit breaker opens
-circuit_reset_time = 1800   # Time in seconds before circuit breaker resets
-
-[logging]
-max_log_size = 5120         # Maximum log file size in KB before rotation (5MB)
-log_files_to_keep = 5       # Number of rotated log files to keep
-
-[process.example]
-restart_strategy = service  # Strategy: service, process, auto, or custom
-pre_restart_command = /path/to/validation/script  # Command to run before restart
-health_check_command = systemctl is-active example  # Command to verify successful restart
-health_check_timeout = 10   # Maximum time in seconds to wait for health check to pass
-restart_delay = 5           # Delay between restart attempts
-max_attempts = 2            # Maximum number of restart attempts per cycle
-
-[process.custom_example]
-restart_strategy = custom   # Use custom restart command
-restart_command = /usr/local/bin/custom_restart.sh %s  # Custom command to restart the process
-health_check_command = pgrep %s  # Command to verify successful restart
-health_check_timeout = 10   # Maximum time in seconds to wait for health check to pass
-restart_delay = 3           # Delay between restart attempts
-max_attempts = 2            # Maximum number of restart attempts per cycle
-```
-
-### Health Check Configuration
-Each process can have a custom health check command that verifies if the process is running correctly after a restart:
-
-- **health_check_command**: Command to run to verify process health (returns 0 for success)
-- **health_check_timeout**: Maximum time in seconds to wait for the health check to pass
-
-For the default section, you can use `%s` as a placeholder for the process name:
-```ini
-[process.default]
-health_check_command = pgrep %s  # Will be replaced with actual process name
-health_check_timeout = 5
-```
+*   A RedHat-based Linux distribution (e.g., CentOS, Fedora, RHEL).
+*   `mysql-server` and `mysql-client` packages installed.
+*   `bash` version 4 or higher.
 
 ## Installation
 
-1. **Create Service Directory:**
-```bash
-sudo mkdir -p /opt/monitor_service
-```
+1.  **System Preparation**
 
-2. **Copy Files:**
-```bash
-sudo cp monitor_service.sh config.ini /opt/monitor_service/
-sudo chmod +x /opt/monitor_service/monitor_service.sh
-```
+    Update your system and install the necessary dependencies:
+    ```bash
+    sudo dnf update -y
+    sudo dnf install -y mysql-server mysql-client
+    ```
 
-3. **Install Service:**
-```bash
-sudo cp monitor_service.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable monitor_service
-sudo systemctl start monitor_service
-```
+2.  **Configure Service Directory**
 
-## Service Management
+    Create a directory for the service and copy the necessary files:
+    ```bash
+    sudo mkdir -p /opt/monitor_service
+    sudo cp monitor_service.sh /opt/monitor_service/
+    sudo cp config.ini /opt/monitor_service/
+    ```
 
-- **Start Service:**
-  ```bash
-  sudo systemctl start monitor_service
-  ```
+3.  **Set Permissions**
 
-- **Check Status:**
-  ```bash
-  sudo systemctl status monitor_service
-  ```
+    Set the correct permissions for the service files:
+    ```bash
+    sudo chmod 755 /opt/monitor_service
+    sudo chmod 700 /opt/monitor_service/monitor_service.sh
+    sudo chmod 600 /opt/monitor_service/config.ini
+    sudo chown -R root:root /opt/monitor_service
+    ```
 
-- **View Logs:**
-  ```bash
-  sudo journalctl -u monitor_service -f
-  ```
+4.  **MySQL Configuration**
 
-- **Stop Service:**
-  ```bash
-  sudo systemctl stop monitor_service
-  ```
+    Start the MySQL service and run the setup script to create the database and tables:
+    ```bash
+    sudo systemctl enable mysqld
+    sudo systemctl start mysqld
+    sudo mysql < setup.sql
+    ```
 
-## Database Schema Requirements
+5.  **Systemd Service Configuration**
 
-### Table: STATUS_PROCESS
-```sql
-CREATE TABLE STATUS_PROCESS (
-    process_id INT PRIMARY KEY,
-    alarma TINYINT,
-    sound TINYINT,
-    notes TEXT
-);
-```
+    Copy the service file to the systemd directory, reload the daemon, and start the service:
+    ```bash
+    sudo cp monitor_service.service /etc/systemd/system/
+    sudo systemctl daemon-reload
+    sudo systemctl enable monitor_service
+    sudo systemctl start monitor_service
+    ```
 
-### Table: PROCESE
+6.  **Install Man Page**
+
+    Copy the man page to the appropriate directory and update the man database:
+    ```bash
+    sudo cp monitor_service.8 /usr/share/man/man8/
+    sudo mandb
+    ```
+    You can now view the man page with `man monitor_service`.
+
+## Configuration
+
+The service is configured through the `config.ini` file.
+
+### `[database]` Section
+
+*   `host`: The hostname or IP address of the MySQL server.
+*   `user`: The username for the MySQL database.
+*   `password`: The password for the MySQL user.
+*   `database`: The name of the MySQL database.
+
+### `[monitor]` Section
+
+*   `check_interval`: The interval in seconds at which the service checks the process statuses.
+*   `max_restart_failures`: The maximum number of restart failures before the circuit breaker opens.
+*   `circuit_reset_time`: The time in seconds before the circuit breaker resets.
+
+### `[logging]` Section
+
+*   `max_log_size`: The maximum log file size in KB before rotation.
+*   `log_files_to_keep`: The number of rotated log files to keep.
+
+### `[process.default]` Section
+
+This section defines the default settings for all processes.
+
+*   `restart_strategy`: The default restart strategy (`auto`, `custom`, `service`, or `process`).
+*   `health_check_command`: The default command to check the health of a process. Use `%s` as a placeholder for the process name.
+*   `health_check_timeout`: The default timeout in seconds for the health check.
+*   `restart_delay`: The default delay in seconds between restart attempts.
+*   `max_attempts`: The default maximum number of restart attempts.
+
+### `[process.<process_name>]` Sections
+
+You can define specific configurations for each process by creating a section with the process name (e.g., `[process.sshd]`).
+
+*   `system_name`: The actual service or process name if it's different from the logical process name.
+*   `pre_restart_command`: A command to be executed before the restart command.
+*   `restart_strategy`: The restart strategy for this specific process.
+*   `restart_command`: The custom command to restart the process. Only used when `restart_strategy` is `custom`.
+*   `health_check_command`: The health check command for this specific process.
+*   `health_check_timeout`: The health check timeout for this specific process.
+*   `restart_delay`: The restart delay for this specific process.
+*   `max_attempts`: The maximum number of restart attempts for this specific process.
+
+## Usage
+
+*   **Start the service:**
+    ```bash
+    sudo systemctl start monitor_service
+    ```
+*   **Stop the service:**
+    ```bash
+    sudo systemctl stop monitor_service
+    ```
+*   **Check the status of the service:**
+    ```bash
+    sudo systemctl status monitor_service
+    ```
+*   **View the logs:**
+    ```bash
+    sudo journalctl -u monitor_service -f
+    ```
+    or
+    ```bash
+    sudo tail -f /var/log/monitor_service.log
+    ```
+
+## Database Schema
+
+The service requires two tables in the database: `PROCESE` and `STATUS_PROCESS`.
+
+### `PROCESE` Table
+
 ```sql
 CREATE TABLE PROCESE (
     process_id INT PRIMARY KEY,
-    process_name VARCHAR(255)
+    process_name VARCHAR(255) NOT NULL
 );
 ```
 
-## Improvement Suggestions
+### `STATUS_PROCESS` Table
 
-1. **Enhanced Security**
-   - Run service with minimal required permissions
-
-2. **Monitoring Enhancements**
-   - Add process uptime tracking
-   - Include process dependency management
-
-5. **Logging and Metrics**
-   - Implement metrics collection for Prometheus
-   - Add log rotation and archiving
-   - Create dashboard templates for monitoring
-
-6. **Process Management**
-   - Add custom restart strategies per process 
-   - Implement graceful shutdown procedures
-   - Support for process priority levels
-   - Extend health check capabilities with HTTP/API endpoint checks
-
-8. **Database Optimizations**
-   - Add connection pooling
-   - Implement retry mechanisms for database operations
-
-9. **Testing and Validation**
-   - Add unit tests for core functions
+```sql
+CREATE TABLE STATUS_PROCESS (
+    process_id INT PRIMARY KEY,
+    alarma TINYINT NOT NULL,
+    sound TINYINT NOT NULL,
+    notes TEXT,
+    FOREIGN KEY (process_id) REFERENCES PROCESE(process_id)
+);
+```
 
 ## Troubleshooting
 
-1. **Service Won't Start**
-   - Check log files in `/var/log/monitor_service.log`
-   - Verify database connectivity
-   - Check file permissions
+*   **Service Fails to Start:**
+    *   Check the service logs for errors: `sudo journalctl -u monitor_service` or `/var/log/monitor_service.log`.
+    *   Verify that the `config.ini` file has the correct permissions (600) and is owned by root.
+    *   Ensure that the `monitor_service.sh` script has the correct permissions (700) and is owned by root.
+*   **Database Connection Issues:**
+    *   Check the database credentials in `config.ini`.
+    *   Ensure that the MySQL server is running and accessible from the host where the service is running.
+*   **Process Restart Failures:**
+    *   Check the logs for errors related to the specific process.
+    *   Verify that the `system_name` in the process configuration is correct.
+    *   If using the `service` strategy, ensure that the service is managed by systemd.
+    *   If using the `process` strategy, ensure that the process can be started from the command line.
+    *   If using the `custom` strategy, verify that the `restart_command` is correct and executable.
 
-2. **Database Connection Issues**
-   - Verify MySQL credentials
-   - Check MySQL server status
-   - Verify network connectivity
+## Improvement Suggestions
 
-3. **Process Restart Failures**
-   - Check process executable permissions
-   - Verify service user permissions
-   - Review systemd service configuration
+*   **Enhanced Security:** Run the service with a dedicated user with minimal required permissions.
+*   **Monitoring Enhancements:**
+    *   Add process uptime tracking.
+    *   Implement process dependency management.
+*   **Logging and Metrics:**
+    *   Integrate with Prometheus for metrics collection.
+    *   Create dashboard templates for monitoring.
+*   **Process Management:**
+    *   Implement graceful shutdown procedures.
+    *   Support for process priority levels.
+    *   Extend health check capabilities with HTTP/API endpoint checks.
+*   **Database Optimizations:**
+    *   Implement connection pooling.
+    *   Add retry mechanisms for database operations.
+*   **Testing and Validation:**
+    *   Add unit tests for core functions.
