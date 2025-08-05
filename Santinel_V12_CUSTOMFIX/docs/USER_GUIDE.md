@@ -118,129 +118,138 @@ Pentru a verifica dacă serviciul este instalat și rulează corect:
 
 Process Monitor Service este configurat prin fișierul `config.ini` localizat în `/opt/monitor_service/`.
 
-### Configurare de Bază
+### 1. Secțiunea `[database]`
+Parametri pentru conectarea la baza de date MySQL.
 
-Fișierul de configurare este împărțit în mai multe secțiuni:
+| Parametru   | Descriere                        | Obligatoriu | Exemplu                |
+|-------------|----------------------------------|-------------|------------------------|
+| host        | Adresa serverului MySQL          | Da          | host = localhost       |
+| user        | Utilizator MySQL                 | Da          | user = root            |
+| password    | Parola utilizatorului MySQL      | Da          | password = secret      |
+| database    | Numele bazei de date             | Da          | database = v_process_monitor |
 
-#### Configurarea Bazei de Date
+---
 
+### 2. Secțiunea `[monitor]`
+Parametri globali pentru comportamentul monitorului.
+
+| Parametru             | Descriere                                                                 | Implicit | Exemplu         |
+|-----------------------|---------------------------------------------------------------------------|----------|-----------------|
+| check_interval        | Intervalul (secunde) între verificări                                     | 120      | check_interval = 120 |
+| max_restart_failures  | Număr maxim de eșecuri la restart înainte de a activa circuit breaker     | 3        | max_restart_failures = 3 |
+| circuit_reset_time    | Timp (secunde) până la resetarea circuit breaker-ului                     | 600      | circuit_reset_time = 600 |
+
+---
+
+### 3. Secțiunea `[logging]`
+Configurare pentru loguri.
+
+| Parametru           | Descriere                                      | Implicit | Exemplu         |
+|---------------------|------------------------------------------------|----------|-----------------|
+| max_log_size        | Dimensiunea maximă a unui fișier de log (KB)   | 5120     | max_log_size = 5120 |
+| log_files_to_keep   | Număr de fișiere de log păstrate (rotație)     | 5        | log_files_to_keep = 5 |
+
+---
+
+### 4. Secțiunea `[process.default]`
+Valori implicite pentru toate procesele, dacă nu sunt suprascrise la nivel de proces.
+
+| Parametru              | Descriere                                                                 | Implicit | Exemplu                  |
+|------------------------|---------------------------------------------------------------------------|----------|--------------------------|
+| restart_strategy       | Strategia de restart: `auto`, `service`, `process`, `custom`              | auto     | restart_strategy = auto  |
+| health_check_command   | Comanda pentru health check (ex: `pgrep %s`)                              | pgrep %s | health_check_command = pgrep %s |
+| health_check_timeout   | Timeout (secunde) pentru health check                                     | 5        | health_check_timeout = 5 |
+| restart_delay          | Pauză (secunde) între încercări de restart                                | 2        | restart_delay = 2        |
+| max_attempts           | Număr maxim de încercări de restart la o alarmă                           | 2        | max_attempts = 2         |
+
+---
+
+### 5. Secțiuni `[process.<nume>]`
+Configurare specifică pentru fiecare serviciu/proces monitorizat. Suprascrie valorile din `[process.default]`.
+
+| Parametru              | Descriere                                                                 | Folosit când...                                 | Exemplu                                  |
+|------------------------|---------------------------------------------------------------------------|-------------------------------------------------|-------------------------------------------|
+| restart_strategy       | `auto`, `service`, `process`, `custom`                                    | Pentru orice proces                             | restart_strategy = custom                 |
+| system_name            | Numele real al serviciului pe server (dacă diferă de cheie)               | Folosit la `service`/`process` sau `%s`         | system_name = rsyslog                     |
+| restart_command        | Comanda custom de restart (doar pentru `custom`)                          | Doar dacă `restart_strategy = custom`           | restart_command = systemctl restart %s    |
+| health_check_command   | Comanda pentru health check                                               | Oricând                                         | health_check_command = systemctl is-active sshd |
+| health_check_timeout   | Timeout (secunde) pentru health check                                     | Oricând                                         | health_check_timeout = 5                  |
+| restart_delay          | Pauză (secunde) între încercări de restart                                | Oricând                                         | restart_delay = 5                         |
+| max_attempts           | Număr maxim de încercări de restart la o alarmă                           | Oricând                                         | max_attempts = 3                          |
+| pre_restart_command    | Comandă executată înainte de restart (opțional)                           | Oricând, dacă e definită                        | pre_restart_command = /usr/bin/precheck.sh |
+
+---
+
+#### Explicații detaliate pentru parametri cheie
+
+- **restart_strategy**
+  - `auto`: Scriptul decide automat strategia (de obicei `service`).
+  - `service`: Folosește `systemctl restart <system_name>`.
+  - `process`: Oprește și pornește procesul direct (cu `pkill` și exec).
+  - `custom`: Execută comanda din `restart_command`.
+
+- **system_name**
+  - Folosit pentru a specifica numele real al serviciului/procesului pe server.
+  - Util doar dacă:
+    - Folosești `restart_strategy = service` sau `process`
+    - Sau dacă ai `%s` în `restart_command` (la `custom`)
+
+- **restart_command**
+  - Folosit doar dacă `restart_strategy = custom`.
+  - Dacă include `%s`, acesta va fi înlocuit cu `system_name` (dacă există) sau cu numele procesului.
+  - Exemplu: `restart_command = /usr/local/bin/restart.sh %s`
+
+- **health_check_command**
+  - Comanda care verifică dacă procesul/serviciul rulează corect după restart.
+  - Poate folosi `%s` pentru a insera `system_name`.
+
+- **pre_restart_command**
+  - Comandă opțională, executată înainte de restart (ex: verificări suplimentare).
+
+---
+
+### Exemple de configurare
+
+#### 1. Serviciu clasic systemd
 ```ini
-[database]
-host = localhost
-user = user
-password = your_password
-database = v_process_monitor
-```
-
-Actualizați aceste setări pentru a se potrivi cu credențialele bazei de date MySQL.
-
-#### Parametri de Monitorizare
-
-```ini
-[monitor]
-; Check interval in seconds (5 minutes)
-check_interval = 300
-; Maximum number of restart failures before circuit breaker opens
-max_restart_failures = 3
-; Circuit breaker reset time in seconds (30 minutes)
-circuit_reset_time = 1800
-```
-
-Aceste setări controlează cât de des serviciul verifică procesele în stare de alarmă și cum se comportă circuit breaker-ul.
-
-#### Configurarea Jurnalizării
-
-```ini
-[logging]
-; Maximum log file size in KB before rotation (default: 5MB)
-max_log_size = 5120
-; Number of log files to keep (default: 5)
-log_files_to_keep = 5
-```
-
-Aceste setări controlează comportamentul rotației jurnalelor.
-
-### Configurare Specifică Proceselor
-
-Fiecare proces poate avea propria secțiune de configurare:
-
-```ini
-[process.apache2]
+[process.sshd]
 restart_strategy = service
-pre_restart_command = /usr/sbin/apachectl configtest
-health_check_command = systemctl is-active apache2
-health_check_timeout = 10
-restart_delay = 5
-max_attempts = 2
+system_name = sshd
+health_check_command = systemctl is-active sshd
 ```
 
-#### Parametri de Configurare
-
-| Parametru | Descriere | Implicit |
-|-----------|-------------|---------|
-| system_name | Numele real al serviciului daca diferă | (numele găsit în baza de date) |
-| restart_strategy | Cum să repornească procesul: "service", "process", sau "auto" | auto |
-| pre_restart_command | Comandă de rulat înainte de încercarea de repornire (opţional) | (niciunul) |
-| restart_command | Comandă de restart (pentru strategia custom) | (niciunul) |
-| health_check_command | Comandă pentru a verifica repornirea cu succes | pgrep %s |
-| health_check_timeout | Timpul maxim în secunde de așteptare pentru health check | 5 |
-| restart_delay | Întârziere în secunde între încercările de repornire | 2 |
-| max_attempts | Numărul maxim de încercări de repornire per ciclu | 2 |
-
-### Configurare Implicită pentru Procese
-
-Puteți specifica setări implicite pentru toate procesele:
-
+#### 2. Serviciu cu nume diferit pe server
 ```ini
-[process.default]
-restart_strategy = auto
-health_check_command = pgrep %s
-health_check_timeout = 5
-restart_delay = 2
-max_attempts = 2
-```
-
-`%s` din health_check_command va fi înlocuit cu numele real al procesului.
-
-### Exemple de Configurare
-
-#### Exemplu Server Web
-
-```ini
-[process.apache2]
+[process.rsyslogd]
 restart_strategy = service
-pre_restart_command = /usr/sbin/apachectl configtest
-health_check_command = curl -s http://localhost/ > /dev/null
-health_check_timeout = 15
-restart_delay = 5
-max_attempts = 3
+system_name = rsyslog
+health_check_command = systemctl is-active rsyslog
 ```
 
-Această configurare:
-- Utilizează strategia de repornire service
-- Rulează un test de configurare înainte de repornire
-- Verifică repornirea verificând dacă serverul web răspunde la cereri HTTP
-- Permite până la 15 secunde pentru ca health check să treacă
-- Așteaptă 5 secunde între încercările de repornire
-- Încearcă până la 3 încercări de repornire
-
-#### Exemplu Server de Baze de Date
-
+#### 3. Restart custom cu script extern
 ```ini
-[process.mysqld]
-restart_strategy = service
-health_check_command = mysqladmin -u root -p'password' ping
-health_check_timeout = 30
-restart_delay = 10
-max_attempts = 2
+[process.myapp]
+restart_strategy = custom
+restart_command = /usr/local/bin/restart_myapp.sh %s
+system_name = myapp_service
+health_check_command = pgrep myapp_service
 ```
 
-Această configurare:
-- Utilizează strategia de repornire service
-- Verifică repornirea verificând dacă MySQL răspunde la ping
-- Permite până la 30 de secunde pentru ca health check să treacă
-- Așteaptă 10 secunde între încercările de repornire
-- Încearcă până la 2 încercări de repornire
+#### 4. Restart direct proces
+```ini
+[process.crond]
+restart_strategy = process
+system_name = cron
+health_check_command = pgrep cron
+```
+
+---
+
+### Atenționări
+
+- Parametrii ca `restart_command` sunt ignorați dacă strategia nu este `custom`.
+- `system_name` nu are efect dacă nu este folosit în strategia sau comanda de restart.
+- Pentru orice parametru lipsă la nivel de proces, se folosește valoarea din `[process.default]`.
 
 ## Utilizarea Serviciului
 
