@@ -301,6 +301,90 @@ Serviciul include o pagină de manual care poate fi accesată folosind:
 man monitor_service
 ```
 
+```
+MONITOR_SERVICE(8)      System Administration Utilities      MONITOR_SERVICE(8)
+
+NAME
+       monitor_service - Monitorizare și restart automat pentru procese Linux
+
+SYNOPSIS
+       monitor_service.sh [ --status ] [ --restart process ] [ --help ]
+
+DESCRIPTION
+       monitor_service.sh este un serviciu care monitorizează procesele critice
+       definite într-o bază de date MySQL și le repornește automat dacă intră
+       în stare de alarmă. Suportă strategii flexibile de restart, health check,
+       rotație loguri și circuit breaker.
+
+OPTIONS
+       --status
+              Afișează procesele aflate în stare de alarmă (alarma=1, sound=0).
+
+       --restart process
+              Forțează restart pentru procesul specificat.
+
+       --help
+              Afișează acest mesaj de ajutor.
+
+CONFIGURATION
+       Configurația se face în fișierul INI /opt/monitor_service/config.ini, cu
+       secțiuni pentru:
+         - [database]: conexiune MySQL
+         - [monitor]: intervale și circuit breaker
+         - [logging]: rotație loguri
+         - [process.<nume>]: configurare per proces
+
+       Exemplu minimal:
+         [database]
+         host = localhost
+         user = root
+         password = ...
+         database = v_process_monitor
+
+         [monitor]
+         check_interval = 120
+         max_restart_failures = 3
+         circuit_reset_time = 600
+
+         [logging]
+         max_log_size = 5120
+         log_files_to_keep = 5
+
+         [process.sshd]
+         restart_strategy = service
+         health_check_command = systemctl is-active sshd
+
+EXAMPLES
+       Pornește serviciul ca daemon:
+         sudo systemctl start monitor_service
+
+       Afișează procesele în alarmă:
+         ./monitor_service.sh --status
+
+       Forțează restart pentru sshd:
+         ./monitor_service.sh --restart sshd
+
+       Afișează ajutorul:
+         ./monitor_service.sh --help
+
+FILES
+       /opt/monitor_service/config.ini
+              Fișierul principal de configurare.
+
+       /var/log/monitor_service.log
+              Fișierul de log.
+
+       /etc/systemd/system/monitor_service.service
+              Unitatea systemd pentru pornire automată.
+
+AUTHOR
+       AD
+
+SEE ALSO
+       systemctl(1), mysql(1), pkill(1), journalctl(1)
+```
+
+
 ### Utilizare din linia de comandă (CLI)
 
 Process Monitor Service poate fi folosit și pentru acțiuni punctuale direct din linia de comandă, fără a porni bucla de monitorizare. Sunt disponibile următoarele opțiuni:

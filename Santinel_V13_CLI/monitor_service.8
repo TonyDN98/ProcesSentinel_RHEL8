@@ -1,161 +1,90 @@
 .TH MONITOR_SERVICE 8 "2025-06-22" "Process Monitor Service" "System Administration Utilities"
 .SH NAME
-monitor_service \- Automated process monitoring and restart service for Linux
+monitor_service \- Monitorizare și restart automat pentru procese Linux
 .SH SYNOPSIS
-.B monitor_service
-.RI [ -c " config_file" ]
+.B monitor_service.sh
+.RI [ --status ]
+.RI [ --restart process ]
+.RI [ --help ]
 .SH DESCRIPTION
-.B monitor_service
-is a system daemon that monitors the status of critical processes as defined in a MySQL database and automatically restarts them if they enter an alarm state. It supports multiple restart strategies, health checks, log rotation, and a circuit breaker pattern to prevent restart storms.
+.B monitor_service.sh
+este un serviciu care monitorizează procesele critice definite într-o bază de date MySQL și le repornește automat dacă intră în stare de alarmă. Suportă strategii flexibile de restart, health check, rotație loguri și circuit breaker.
 
 .SH OPTIONS
 .TP
-.BR -c " config_file"
-Specify an alternative configuration file (default: /opt/monitor_service/config.ini).
+.B --status
+Afișează procesele aflate în stare de alarmă (alarma=1, sound=0).
+.TP
+.B --restart process
+Forțează restart pentru procesul specificat.
+.TP
+.B --help
+Afișează acest mesaj de ajutor.
 
 .SH CONFIGURATION
-The service uses an INI-style configuration file with the following sections:
+Configurația se face în fișierul INI /opt/monitor_service/config.ini, cu secțiuni pentru:
+- [database]: conexiune MySQL
+- [monitor]: intervale și circuit breaker
+- [logging]: rotație loguri
+- [process.<nume>]: configurare per proces
 
-.TP
-.B [database]
-Database connection settings:
-.RS
+Exemplu minimal:
 .nf
+[database]
 host = localhost
 user = root
-password = Parola22@@
+password = ...
 database = v_process_monitor
-.fi
-.RE
 
-.TP
-.B [monitor]
-Monitoring and circuit breaker settings:
-.RS
-.nf
-check_interval = 300            ; Check interval in seconds
-max_restart_failures = 3        ; Max restart failures before circuit breaker opens
-circuit_reset_time = 1800       ; Circuit breaker reset time in seconds
-.fi
-.RE
+[monitor]
+check_interval = 120
+max_restart_failures = 3
+circuit_reset_time = 600
 
-.TP
-.B [logging]
-Log rotation settings:
-.RS
-.nf
-max_log_size = 5120             ; Max log file size in KB before rotation
-log_files_to_keep = 5           ; Number of rotated log files to keep
-.fi
-.RE
+[logging]
+max_log_size = 5120
+log_files_to_keep = 5
 
-.TP
-.B [process.<name>]
-Process-specific monitoring and restart settings. Example:
-.RS
-.nf
-[process.apache2]
+[process.sshd]
 restart_strategy = service
-pre_restart_command = /usr/sbin/apachectl configtest
-health_check_command = systemctl is-active apache2
-health_check_timeout = 10
-restart_delay = 5
-max_attempts = 2
+health_check_command = systemctl is-active sshd
 .fi
-.RE
 
+.SH EXAMPLES
 .TP
-.B [process.default]
-Default settings for processes not explicitly listed.
-
-.SH RESTART STRATEGIES
+Pornește serviciul ca daemon:
+.nf
+sudo systemctl start monitor_service
+.fi
 .TP
-.B service
-Restart using \fBsystemctl restart <process>\fR.
+Afișează procesele în alarmă:
+.nf
+./monitor_service.sh --status
+.fi
 .TP
-.B process
-Directly kill and restart the process using \fBpkill\fR and process invocation.
+Forțează restart pentru sshd:
+.nf
+./monitor_service.sh --restart sshd
+.fi
 .TP
-.B custom
-Run a custom restart command, e.g. \fBrestart_command = /usr/local/bin/custom_restart.sh %s\fR.
-.TP
-.B auto
-Try \fBservice\fR first, then fallback to \fBprocess\fR.
-
-.SH HEALTH CHECKS
-After each restart, a health check command is run (e.g. \fBsystemctl is-active <process>\fR or \fBpgrep <process>\fR).
-The service waits up to \fBhealth_check_timeout\fR seconds for the check to pass.
-
-.SH CIRCUIT BREAKER
-If a process fails to restart \fBmax_restart_failures\fR times in a row, the circuit breaker "opens" for that process and no further restart attempts are made until \fBcircuit_reset_time\fR seconds have passed.
-
-.SH LOGGING
-Logs are written to \fB/var/log/monitor_service.log\fR. Log rotation is performed when the file exceeds \fBmax_log_size\fR KB, keeping up to \fBlog_files_to_keep\fR rotated logs.
+Afișează ajutorul:
+.nf
+./monitor_service.sh --help
+.fi
 
 .SH FILES
 .TP
 .B /opt/monitor_service/config.ini
-Main configuration file.
+Fișierul principal de configurare.
 .TP
 .B /var/log/monitor_service.log
-Main log file.
+Fișierul de log.
 .TP
 .B /etc/systemd/system/monitor_service.service
-Systemd service unit file.
-
-.SH SIGNALS
-.TP
-.B SIGTERM
-Graceful shutdown.
-.TP
-.B SIGHUP
-Reload configuration.
-
-.SH DATABASE SCHEMA
-The service expects the following tables:
-.RS
-.nf
-CREATE TABLE STATUS_PROCESS (
-    process_id INT PRIMARY KEY,
-    alarm TINYINT,
-    sound TINYINT,
-    notes TEXT
-);
-
-CREATE TABLE PROCESS (
-    process_id INT PRIMARY KEY,
-    process_name VARCHAR(255)
-);
-.fi
-.RE
-
-.SH EXAMPLES
-.TP
-Start the service:
-.RS
-.nf
-sudo systemctl start monitor_service
-.fi
-.RE
-
-.TP
-Check service status:
-.RS
-.nf
-sudo systemctl status monitor_service
-.fi
-.RE
-
-.TP
-View logs:
-.RS
-.nf
-sudo tail -f /var/log/monitor_service.log
-.fi
-.RE
+Unitatea systemd pentru pornire automată.
 
 .SH AUTHOR
-Written by TonyDN98 and contributors.
+AD
 
 .SH SEE ALSO
 .BR systemctl (1),
