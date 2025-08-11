@@ -504,6 +504,7 @@ Acest script vă permite să:
 
   Asigurați-vă că MySQL rulează.
 
+<br><br>
 ### Înțelegerea Mesajelor de Jurnal
 
 Fișierul de jurnal (**/var/log/monitor_service.log**) conține informații detaliate despre operațiunea serviciului:
@@ -545,6 +546,7 @@ Fișierul de jurnal (**/var/log/monitor_service.log**) conține informații deta
   2023-06-15 10:15:10 - WARNING - Circuit breaker opened for apache2 after 3 failures
   ```
 
+<br><br>
 ## Întrebări Frecvente
 
 ### Cum știe serviciul ce procese să monitorizeze?
