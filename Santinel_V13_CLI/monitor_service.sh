@@ -645,7 +645,7 @@ main() {
 
     log "INFO" "Starting Process Monitor Service"
     
-    # --- CLI argument handling ---
+    # --- CLI argument ---
     if [[ "$1" == "--help" ]]; then
         echo "Usage: $0 [--status] [--restart <process_name>] [--help]"
         echo "  --status                Afișează procesele aflate în stare de alarmă."
@@ -679,7 +679,10 @@ main() {
 
         # Get processes in alarm state
         while IFS='|' read -r process_id process_name alarma sound notes; do
-            if [ -n "$process_id" ]; then
+            # if [ -n "$process_id" ]; then
+            
+            # Procesează doar dacă process_id și process_name nu sunt goale
+            if [ -n "$process_id" ] && [ -n "$process_name" ]; then
                 echo " " # Print a space to avoid overwriting the previous line
                 log "INFO" "Found process in alarm: $process_name (ID: $process_id)"
 

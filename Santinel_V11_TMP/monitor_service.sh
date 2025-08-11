@@ -7,7 +7,7 @@
 
 # Set up logging
 LOG_FILE="/var/log/monitor_service.log"
-
+ 
 # Load configuration
 CONFIG_FILE="config.ini"
 

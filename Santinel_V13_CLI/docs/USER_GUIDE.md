@@ -14,7 +14,7 @@ Acest ghid oferă instrucțiuni pentru administratorii de sistem despre cum să 
 
 ## Introducere
 
-Process Monitor Service este o soluție de monitorizare a sistemului care repornește automat procesele critice atunci când acestea eșuează. Funcționează prin monitorizarea unei baze de date MySQL pentru procesele în stare de alarmă și luarea măsurilor adecvate pentru a le reporni.
+Process Monitor Service este o soluție de monitorizare a sistemului care repornește automat procesele critice atunci când acestea sunt în alarmă. Funcționează prin monitorizarea unei baze de date MySQL pentru procesele în stare de alarmă și luarea măsurilor adecvate pentru a le reporni.
 
 ### Caracteristici Principale
 
