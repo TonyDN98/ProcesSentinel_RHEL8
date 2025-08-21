@@ -31,6 +31,9 @@ sudo cp config.ini /opt/monitor_service/
 sudo chmod 755 /opt/monitor_service
 sudo chmod 700 /opt/monitor_service/monitor_service.sh
 sudo chmod 600 /opt/monitor_service/config.ini
+
+# bash: ./monitor_service.sh: /bin/bash^M: bad interpreter: No such file or directory
+sed -i 's/\r$//' monitor_service.sh config.ini monitor_service.conf test_alarm.sh
 ```
 
 ### 3. Configurarea MySQL
@@ -247,70 +250,6 @@ sudo systemctl start monitor_service
   ```bash
   sudo systemctl stop monitor_service
   ```
-
-## Database Schema Requirements
-
-### Table: STATUS_PROCESS
-```sql
-CREATE TABLE STATUS_PROCESS (
-    process_id INT PRIMARY KEY,
-    alarma TINYINT,
-    sound TINYINT,
-    notes TEXT
-);
-```
-
-### Table: PROCESE
-```sql
-CREATE TABLE PROCESE (
-    process_id INT PRIMARY KEY,
-    process_name VARCHAR(255)
-);
-```
-
-## Improvement Suggestions
-
-1. **Enhanced Security**
-   - Run service with minimal required permissions
-
-2. **Monitoring Enhancements**
-   - Add process uptime tracking
-   - Include process dependency management
-
-5. **Logging and Metrics**
-   - Implement metrics collection for Prometheus
-   - Add log rotation and archiving
-   - Create dashboard templates for monitoring
-
-6. **Process Management**
-   - Add custom restart strategies per process 
-   - Implement graceful shutdown procedures
-   - Support for process priority levels
-   - Extend health check capabilities with HTTP/API endpoint checks
-
-8. **Database Optimizations**
-   - Add connection pooling
-   - Implement retry mechanisms for database operations
-
-9. **Testing and Validation**
-   - Add unit tests for core functions
-
-## Troubleshooting
-
-1. **Service Won't Start**
-   - Check log files in `/var/log/monitor_service.log`
-   - Verify database connectivity
-   - Check file permissions
-
-2. **Database Connection Issues**
-   - Verify MySQL credentials
-   - Check MySQL server status
-   - Verify network connectivity
-
-3. **Process Restart Failures**
-   - Check process executable permissions
-   - Verify service user permissions
-   - Review systemd service configuration
 
 ### Audit modificări fișiere (auditd)
 
