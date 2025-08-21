@@ -311,3 +311,47 @@ CREATE TABLE PROCESE (
    - Check process executable permissions
    - Verify service user permissions
    - Review systemd service configuration
+
+### Audit modificări fișiere (auditd)
+
+Pentru a înregistra cine și când modifică `monitor_service.sh` sau fișierele de configurare, folosește Linux Audit (auditd). Aceasta oferă detalii precum utilizatorul de login original (auid), procesul care a făcut modificarea, timpul exact și terminalul/IP-ul.
+
+1) Verifică/pornește auditd
+```bash
+sudo auditctl -s
+# Dacă nu rulează, instalează și pornește serviciul auditd conform distribuției tale
+```
+
+2) Adaugă reguli persistente pentru fișiere
+```bash
+echo '-w /opt/monitor_service/monitor_service.sh -p wa -k monitor_service_changes' | sudo tee /etc/audit/rules.d/monitor_service.rules
+echo '-w /opt/monitor_service/config.ini -p wa -k monitor_service_changes' | sudo tee -a /etc/audit/rules.d/monitor_service.rules
+sudo augenrules --load
+```
+- `-w`: urmărește calea fișierului
+- `-p wa`: loghează write și schimbări de atribute (chmod/chown etc.)
+- `-k`: cheie (tag) pentru căutare ușoară
+
+Opțional: monitorizează întregul director
+```bash
+echo '-w /opt/monitor_service -p wa -k monitor_service_changes' | sudo tee /etc/audit/rules.d/monitor_service.rules
+sudo augenrules --load
+```
+
+3) Testează și investighează evenimentele
+```bash
+# După o modificare a fișierului, caută evenimentele marcate cu key-ul setat
+sudo ausearch -k monitor_service_changes -i
+
+# Rapoarte sumare pe fișiere
+sudo aureport -f -i --summary
+```
+
+4) Trimitere către syslog (opțional)
+- Instalează/activează pluginurile audispd (ex. pachetul „audispd-plugins”).
+- Activează `syslog` în `/etc/audisp/plugins.d/syslog.conf` (set `active = yes`).
+- Evenimentele audit pot fi apoi procesate/alertate de rsyslog.
+
+Note:
+- `auid` este identitatea de login inițială (utilă când s-a folosit `sudo`).
+- Pentru protecție temporară poți bloca modificările: `sudo chattr +i /opt/monitor_service/monitor_service.sh` (dezactivezi cu `sudo chattr -i ...`).
