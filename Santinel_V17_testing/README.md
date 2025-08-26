@@ -241,6 +241,7 @@ sudo systemctl start monitor_service
 - **View Logs:**
   ```bash
   sudo journalctl -u monitor_service -f
+  less -R /var/log/monitor_service.log
   ```
 
 - **Stop Service:**

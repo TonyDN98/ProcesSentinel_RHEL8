@@ -44,7 +44,15 @@ INSERT INTO STATUS_PROCESS (process_id, alarma, sound, notes) VALUES
 (1, 0, 0, 'Process_1 Test dif'),
 (2, 0, 0, 'Process_2 Test bun'),
 (3, 0, 0, 'Process_3 Test dif'),
-(4, 0, 0, 'Process_4 Test bun');
+(4, 0, 0, 'Process_4 Test bun'),
+(5, 0, 0, 'NTP client/server'),
+(6, 0, 0, 'PolicyKit authorization manager'),
+(7, 0, 0, 'Printing system'),
+(8, 0, 0, 'Dynamic system tuning daemon'),
+(9, 0, 0, 'Audit daemon'),
+(10, 0, 0, 'Cron daemon'),
+(11, 0, 0, 'Apache HTTP server'),
+(12, 0, 0, 'Podman engine');
 
 -- PROCESE: process_id, process_name
 -- INSERT INTO PROCESE (process_id, process_name) VALUES
@@ -65,7 +73,15 @@ INSERT INTO PROCESE (process_id, process_name) VALUES
 (1, 'process_1'),
 (2, 'process_2'),
 (3, 'process_3'),
-(4, 'process_4');
+(4, 'process_4'),
+(5, 'chronyd'),
+(6, 'polkitd'),
+(7, 'cupsd'),
+(8, 'tuned'),
+(9, 'auditd'),
+(10, 'crond'),
+(11, 'httpd'),
+(12, 'podman');
 
 -- Add an index for faster queries
 CREATE INDEX idx_alarma ON STATUS_PROCESS(alarma);
