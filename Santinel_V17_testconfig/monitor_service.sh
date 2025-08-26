@@ -95,15 +95,11 @@ log() {
     fi
 
     # Format: YYYY-MM-DD HH:MM:SS [LEVEL] - Message
-    # Add color for ERROR messages (Red) both in terminal and log file
+    echo "$timestamp  [$level] - $message" | tee -a "$LOG_FILE"
+    
+    # If level is ERROR or higher, also log to syslog
     if [[ "$level" == "ERROR" || "$level" == "CRITICAL" ]]; then
-        # Write to log file and display in terminal with colors
-        echo -e "$timestamp  \033[0;31m[$level]\033[0m - $message" | tee -a "$LOG_FILE"
-        # Send to syslog
         logger -p daemon.err "$timestamp [$level] $message"
-    else
-        # Normal messages without colors
-        echo "$timestamp  [$level] - $message" | tee -a "$LOG_FILE"
     fi
 }
 
@@ -726,10 +722,6 @@ main() {
                 fi
             fi
         done < <(get_alarm_processes)
-
-        # TO ADD
-        # Add empty line in logs to mark end of cycle
-        log "NEWLINE" " "
 
         # Calculate and show countdown until next check
         time_until_next_check=$CHECK_INTERVAL

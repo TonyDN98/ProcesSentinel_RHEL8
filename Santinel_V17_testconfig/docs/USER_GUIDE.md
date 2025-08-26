@@ -110,7 +110,6 @@ Pentru a verifica dacă serviciul este instalat și rulează corect:
 
    ```bash
    sudo tail -f /var/log/monitor_service.log
-   less -R /var/log/monitor_service.log
    ```
 
    Ar trebui să vedeți mesaje de pornire și mesaje periodice de verificare a bazei de date.
