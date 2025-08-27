@@ -33,7 +33,11 @@ show_services() {
     log "INFO" "Lista serviciilor disponibile:"
     mysql -N -u"$DB_USER" -p"$DB_PASS" -h"$DB_HOST" "$DB_NAME" <<EOF
     SELECT CONCAT(p.process_id, ' - ', p.process_name, ' (', 
-           CASE WHEN s.alarma = 1 THEN 'în alarmă' ELSE 'normal' END, ')')
+           CASE 
+               WHEN s.alarma = 1 AND s.sound = 1 THEN 'în alarmă, bifat'
+               WHEN s.alarma = 1 THEN 'în alarmă'
+               ELSE 'normal' 
+           END, ')')
     FROM STATUS_PROCESS s
     JOIN PROCESE p ON s.process_id = p.process_id
     ORDER BY p.process_id;
