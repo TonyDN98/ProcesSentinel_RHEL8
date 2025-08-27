@@ -157,10 +157,13 @@ Valori implicite pentru toate procesele, dacă nu sunt suprascrise la nivel de p
 | Parametru              | Descriere                                                                 | Implicit | Exemplu                  |
 |------------------------|---------------------------------------------------------------------------|----------|--------------------------|
 | restart_strategy       | Strategia de restart: `auto`, `service`, `process`, `custom`              | auto     | restart_strategy = auto  |
-| health_check_command   | Comanda pentru health check (ex: `pgrep %s`)                              | pgrep %s | health_check_command = pgrep %s |
+| health_check_command   | Comanda pentru health check (ex: `pgrep %s`, `systemctl is-active %s`)    | pgrep %s | health_check_command = pgrep %s |
 | health_check_timeout   | Timeout (secunde) pentru health check                                     | 5        | health_check_timeout = 5 |
 | restart_delay          | Pauză (secunde) între încercări de restart                                | 2        | restart_delay = 2        |
 | max_attempts           | Număr maxim de încercări de restart la o alarmă                           | 2        | max_attempts = 2         |
+| pre_restart_command    | Comandă executată înainte de restart                                      | -        | pre_restart_command = /usr/local/bin/check.sh |
+| restart_command        | Comandă specifică pentru restart (folosită cu strategia custom)           | -        | restart_command = systemctl restart %s |
+| system_name            | Numele real al serviciului/procesului pe sistem                           | -        | system_name = mariadb |
 
 ---
 
@@ -183,28 +186,118 @@ Configurare specifică pentru fiecare serviciu/proces monitorizat. Suprascrie va
 #### Explicații detaliate pentru parametri cheie
 
 - **restart_strategy**
-  - `auto`: Scriptul decide automat strategia (de obicei `service`).
-  - `service`: Folosește `systemctl restart <system_name>`.
-  - `process`: Oprește și pornește procesul direct (cu `pkill` și exec).
-  - `custom`: Execută comanda din `restart_command`.
+  - `auto`: Scriptul decide automat strategia optimă bazată pe tipul procesului.
+    - Pentru servicii systemd detectate, folosește strategia `service`
+    - Pentru procese simple, folosește strategia `process`
+    - Recomandată pentru cazurile generale
+  
+  - `service`: Strategia pentru servicii systemd
+    - Folosește `systemctl restart <system_name>`
+    - Verifică starea cu `systemctl is-active`
+    - Potrivită pentru servicii precum nginx, sshd, mysql
+    - Exemplu:
+      ```ini
+      [process.nginx_web]
+      restart_strategy = service
+      system_name = nginx
+      health_check_command = systemctl is-active nginx
+      ```
+
+  - `process`: Strategia pentru procese simple
+    - Folosește `pkill` pentru oprire și execuție directă pentru pornire
+    - Verifică starea cu `pgrep`
+    - Potrivită pentru daemons și procese de fundal
+    - Exemplu:
+      ```ini
+      [process.crond]
+      restart_strategy = process
+      system_name = cron
+      health_check_command = pgrep cron
+      ```
+
+  - `custom`: Strategia pentru cazuri speciale
+    - Execută comanda definită în `restart_command`
+    - Oferă control total asupra procesului de restart
+    - Necesită definirea explicită a comenzii de restart
+    - Exemplu:
+      ```ini
+      [process.custom_app]
+      restart_strategy = custom
+      restart_command = /usr/local/bin/custom_restart.sh %s
+      health_check_command = curl -s http://localhost:8080/health
+      ```
 
 - **system_name**
-  - Folosit pentru a specifica numele real al serviciului/procesului pe server.
-  - Util doar dacă:
-    - Folosești `restart_strategy = service` sau `process`
-    - Sau dacă ai `%s` în `restart_command` (la `custom`)
+  - Numele real al serviciului/procesului pe sistem
+  - Folosit în următoarele situații:
+    1. Cu strategia `service`: Pentru numele corect al serviciului systemd
+    2. Cu strategia `process`: Pentru identificarea procesului în sistem
+    3. În comenzi custom: Înlocuiește %s în comenzi
+  - Exemple:
+    ```ini
+    # Serviciu cu nume diferit
+    [process.mysql_database]
+    restart_strategy = service
+    system_name = mariadb
+    
+    # Proces cu nume specific
+    [process.web_app]
+    restart_strategy = process
+    system_name = myapp-server
+    ```
 
 - **restart_command**
-  - Folosit doar dacă `restart_strategy = custom`.
-  - Dacă include `%s`, acesta va fi înlocuit cu `system_name` (dacă există) sau cu numele procesului.
-  - Exemplu: `restart_command = /usr/local/bin/restart.sh %s`
+  - Obligatoriu pentru strategia `custom`
+  - Poate include următoarele placeholdere:
+    - %s: Înlocuit cu system_name sau numele procesului
+    - %d: Înlocuit cu directorul curent al procesului
+  - Exemple practice:
+    ```ini
+    # Restart Docker container
+    restart_command = docker restart %s
+    
+    # Restart cu script custom
+    restart_command = /usr/local/bin/restart_app.sh %s
+    
+    # Restart complex
+    restart_command = cd %d && ./stop.sh && ./start.sh
+    ```
 
 - **health_check_command**
-  - Comanda care verifică dacă procesul/serviciul rulează corect după restart.
-  - Poate folosi `%s` pentru a insera `system_name`.
+  - Verifică starea procesului după restart
+  - Trebuie să returneze cod 0 pentru succes
+  - Exemple pentru diferite tipuri de verificări:
+    ```ini
+    # Verificare serviciu systemd
+    health_check_command = systemctl is-active %s
+    
+    # Verificare proces
+    health_check_command = pgrep -f %s
+    
+    # Verificare endpoint HTTP
+    health_check_command = curl -sf http://localhost:8080/health
+    
+    # Verificare port
+    health_check_command = netstat -tulpn | grep %s
+    ```
 
 - **pre_restart_command**
-  - Comandă opțională, executată înainte de restart (ex: verificări suplimentare).
+  - Execută verificări sau pregătiri înainte de restart
+  - Util pentru:
+    1. Salvare stare sau backup
+    2. Oprire servicii dependente
+    3. Verificări de sistem
+  - Exemple practice:
+    ```ini
+    # Backup înainte de restart
+    pre_restart_command = /usr/local/bin/backup_db.sh
+    
+    # Verificare dependențe
+    pre_restart_command = systemctl is-active dependency1 && systemctl is-active dependency2
+    
+    # Curățare cache
+    pre_restart_command = rm -rf /tmp/cache/*
+    ```
 
 ---
 
@@ -245,11 +338,28 @@ health_check_command = pgrep cron
 
 ---
 
-### Atenționări
+### Considerații importante pentru configurare
 
-- Parametrii ca `restart_command` sunt ignorați dacă strategia nu este `custom`.
-- `system_name` nu are efect dacă nu este folosit în strategia sau comanda de restart.
-- Pentru orice parametru lipsă la nivel de proces, se folosește valoarea din `[process.default]`.
+1. **Ierarhia parametrilor**
+   - Parametrii definiți în secțiunea specifică a procesului (`[process.<nume>]`) au prioritate
+   - Dacă un parametru lipsește, se folosește valoarea din `[process.default]`
+   - Dacă parametrul nu există nici în `[process.default]`, se folosesc valorile implicite ale sistemului
+
+2. **Interacțiunea dintre parametri**
+   - Pentru strategia `custom`: `restart_command` este obligatoriu
+   - Pentru strategia `service`: `health_check_command` ar trebui să folosească `systemctl is-active`
+   - Pentru strategia `process`: Se recomandă folosirea `pgrep` pentru health check
+
+3. **Securitate și permisiuni**
+   - Comenzile specificate în `restart_command` și `pre_restart_command` trebuie să fie executabile
+   - Scripturile custom trebuie să aibă permisiunile corecte (cel puțin 700)
+   - Se recomandă folosirea căilor absolute în toate comenzile
+
+4. **Best Practices**
+   - Testați configurația nouă într-un mediu de dezvoltare înainte de producție
+   - Folosiți timeouts rezonabile pentru health checks (5-10 secunde recomandat)
+   - Păstrați comenzile de restart cât mai simple și robuste posibil
+   - Verificați jurnalele după modificarea configurației
 
 ## Utilizarea Serviciului
 
